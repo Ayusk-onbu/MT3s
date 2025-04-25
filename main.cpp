@@ -28,21 +28,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 rotateCamera = { 0.0f,0.0f,0.0f };
 	Vector3 translateCamera = { 0.0f,0.0f,-5.0f };
 
-	//関数化する
-	Matrix4x4 worldMatrix = MakeAffineMatrix(scale, rotate, translate);
-	Matrix4x4 cameraMatrix = MakeAffineMatrix(scaleCamera, rotateCamera, translateCamera);
-	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
-	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
-	
-	Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
-	Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, 1280.0f, 720.0f, 0.0f, 1.0f);
-
 	Vector3 screenVertices[3];
-	for (uint32_t i = 0;i < 3;++i) {
-		Vector3 ndcVertex = Transform(kLocalVertices[i], worldViewProjectionMatrix);
-		screenVertices[i] = Transform(ndcVertex, viewportMatrix);
-	}
-
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
 	char preKeys[256] = {0};
@@ -79,17 +65,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//Y軸の回転
 		rotate.y += 0.1f;
 
-		worldMatrix = MakeAffineMatrix(scale, rotate, translate);
-		cameraMatrix = MakeAffineMatrix(scaleCamera, rotateCamera, translateCamera);
-		viewMatrix = Inverse(cameraMatrix);
-		projectionMatrix = MakePerspectiveFovMatrix(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
-
-		worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
-		viewportMatrix = MakeViewportMatrix(0, 0, 1280.0f, 720.0f, 0.0f, 1.0f);
-
 		for (uint32_t i = 0;i < 3;++i) {
-			Vector3 ndcVertex = Transform(kLocalVertices[i], worldViewProjectionMatrix);
-			screenVertices[i] = Transform(ndcVertex, viewportMatrix);
+			screenVertices[i] = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, kLocalVertices[i]);
 		}
 
 		///

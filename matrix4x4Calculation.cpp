@@ -225,6 +225,22 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 	return ret;
 }
 
+//レンダリングパイプライン
+Vector3 RenderingPipelineVer2(Vector3 scale, Vector3 rotate, Vector3 translate,
+	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	Vector3 localVertex, float width, float height, float fovY, float nearClip, float farClip,
+	float left, float top, float minDepth, float maxDepth) {
+	Matrix4x4 worldMatrix = MakeAffineMatrix(scale, rotate, translate);
+	Matrix4x4 cameraMatrix = MakeAffineMatrix(scaleCamera, rotateCamera, translateCamera);
+	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
+	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(fovY, width / height, nearClip, farClip);
+	Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
+	Matrix4x4 viewportMatrix = MakeViewportMatrix(left, top, width, height, minDepth, maxDepth);
+	Vector3 ndcVertex = Transform(localVertex, worldViewProjectionMatrix);
+	Vector3 screenVertex = Transform(ndcVertex, viewportMatrix);
+	return screenVertex;
+}
+
 //クロス積（外積）
 Vector3 CrossProduct(const Vector3& v1, const Vector3& v2) {
 	Vector3 ret;
