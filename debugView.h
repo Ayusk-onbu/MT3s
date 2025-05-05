@@ -1,5 +1,6 @@
 #pragma once
 #include "structures.h"
+#include <imgui.h>
 
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* lavel);
 

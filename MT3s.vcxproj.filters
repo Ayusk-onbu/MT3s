@@ -29,6 +29,9 @@
     <ClCompile Include="matrix4x4Calculation.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
+    <ClCompile Include="drawSeries.cpp">
+      <Filter>KamataEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="C:\KamataEngine\DirectXGame\audio\Audio.h">
@@ -128,6 +131,9 @@
       <Filter>KamataEngine</Filter>
     </ClInclude>
     <ClInclude Include="functions.h">
+      <Filter>KamataEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="drawSeries.h">
       <Filter>KamataEngine</Filter>
     </ClInclude>
   </ItemGroup>
