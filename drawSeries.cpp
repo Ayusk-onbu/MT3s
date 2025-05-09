@@ -34,8 +34,8 @@ void DrawGrid(Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera
 	}
 }
 
-void DrawSphere(const Sphere& sphere, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
-	Vector3 scale, Vector3 rotate, Vector3 translate,
+void DrawSphere(const Sphere& sphere, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, int color,
+	Vector3 scale, Vector3 rotate, Vector3 translate, 
 	float width, float height, float fovY, float nearClip, float farClip,
 	float left, float top, float minDepth, float maxDepth) {
 	const uint32_t kSubdivision = 10;
@@ -65,12 +65,12 @@ void DrawSphere(const Sphere& sphere, Vector3 scaleCamera, Vector3 rotateCamera,
 				static_cast<int>(a.y),
 				static_cast<int>(b.x),
 				static_cast<int>(b.y),
-				0x000000FF);
+				color);
 			Novice::DrawLine(static_cast<int>(b.x),
 				static_cast<int>(b.y),
 				static_cast<int>(c.x),
 				static_cast<int>(c.y),
-				0x000000FF);
+				color);
 		}
 	}
 }

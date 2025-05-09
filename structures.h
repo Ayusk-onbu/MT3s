@@ -17,3 +17,19 @@ struct Sphere {
 	Vector3 center;
 	float radius;
 };
+
+//直線
+struct Line {
+	Vector3 origin;//始点
+	Vector3 diff;//終点への差分べくとる
+};
+//半直線
+struct Ray {
+	Vector3 origin;//始点
+	Vector3 diff;//終点への差分べくとる
+};
+//線分
+struct Segment {
+	Vector3 origin;//始点
+	Vector3 diff;//終点への差分べくとる
+};

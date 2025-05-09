@@ -44,3 +44,35 @@ Vector3 Normalize(const Vector3& v) {
 	ret.z = v.z / Length(v);
 	return ret;
 }
+//正射影
+Vector3 Project(const Vector3& v1, const Vector3& v2) {
+	Vector3 ret;
+	float dot = Dot(v1, Normalize(v2));
+	ret = Multiply(dot, Normalize(v2));
+	return ret;
+}
+
+
+
+//最近接点
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	// 線分の始点と終点を計算
+	Vector3 segmentEnd = { segment.origin.x + segment.diff.x,
+						   segment.origin.y + segment.diff.y,
+						   segment.origin.z + segment.diff.z };
+
+	// 点から線分の始点へのベクトル
+	Vector3 pointVec = { point.x - segment.origin.x,
+						 point.y - segment.origin.y,
+						 point.z - segment.origin.z };
+
+	// `Project` を使用して正射影を求める
+	Vector3 projectedVec = Project(pointVec, segment.diff);
+
+	// 線分の始点からの正射影点を計算
+	Vector3 projectedPoint = { segment.origin.x + projectedVec.x,
+							   segment.origin.y + projectedVec.y,
+							   segment.origin.z + projectedVec.z };
+	return projectedPoint;
+
+}

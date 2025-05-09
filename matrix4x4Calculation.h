@@ -41,9 +41,11 @@ Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Ve
 Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip);
 //正射影行列
 Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float bottom, float nearClip, float farClip);
+//ViewProjectionMatrix
+Matrix4x4 MakeViewProjectionMatrix(Vector3 scale, Vector3 rotate, Vector3 translate, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	float width = 1280.0f, float height = 720.0f, float fovY = 0.45f, float nearClip = 0.1f, float farClip = 100.0f);
 //ビューポート変換行列
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
-
 //レンダリングパイプライン
 Vector3 RenderingPipelineVer2(Vector3 scale, Vector3 rotate, Vector3 translate, 
 	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, 
