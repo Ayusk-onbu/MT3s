@@ -51,9 +51,3 @@ Vector3 RenderingPipelineVer2(Vector3 scale, Vector3 rotate, Vector3 translate,
 	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, 
 	Vector3 localVertex,float width = 1280.0f,float height = 720.0f, float fovY = 0.45f, float nearClip = 0.1f,float farClip = 100.0f,
 	float left = 0.0f,float top = 0.0f,float minDepth = 0.0f, float maxDepth = 0.0f);
-
-//クロス積（外積）
-Vector3 CrossProduct(const Vector3& v1, const Vector3& v2);
-
-//内積
-float DotProduct(const Vector3& v1, const Vector3& v2);

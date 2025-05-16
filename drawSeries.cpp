@@ -1,5 +1,7 @@
 #include "drawSeries.h"
 #include "matrix4x4Calculation.h"
+#include "planeCalculation.h"
+#include "vector3Calculation.h"
 #include <Novice.h>
 
 void DrawGrid(Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
@@ -73,4 +75,32 @@ void DrawSphere(const Sphere& sphere, Vector3 scaleCamera, Vector3 rotateCamera,
 				color);
 		}
 	}
+}
+
+void DrawPlane(const Plane& plane, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, int color,
+	Vector3 scale, Vector3 rotate, Vector3 translate,
+	float width, float height, float fovY, float nearClip, float farClip,
+	float left, float top, float minDepth, float maxDepth) 
+{
+	Matrix4x4 viewProjectionMatrix = MakeViewProjectionMatrix(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera,width,height,fovY,nearClip,farClip);
+	Matrix4x4 viewPortMatrix = MakeViewportMatrix(left, top, width, height, minDepth, maxDepth);
+	// 中心を決める
+	Vector3 center = Multiply(plane.distance, plane.normal);
+	// ?
+	Vector3 perpendiculars[4];
+	perpendiculars[0] = Normalize(Perpendicular(plane.normal));
+	perpendiculars[1] = { -perpendiculars[0].x,-perpendiculars[0].y,-perpendiculars[0].z };
+	perpendiculars[2] = CrossProduct(plane.normal,perpendiculars[0]);
+	perpendiculars[3] = { -perpendiculars[2].x,-perpendiculars[2].y,-perpendiculars[2].z };
+
+	Vector3 points[4];
+	for (int32_t index = 0;index < 4;++index) {
+		Vector3 extend = Multiply(2.0f, perpendiculars[index]);
+		Vector3 point = Add(center, extend);
+		points[index] = Transform(Transform(point, viewProjectionMatrix), viewPortMatrix);
+	}
+	Novice::DrawLine(int(points[0].x), int(points[0].y), int(points[2].x), int(points[2].y), color);
+	Novice::DrawLine(int(points[1].x), int(points[1].y), int(points[3].x), int(points[3].y), color);
+	Novice::DrawLine(int(points[2].x), int(points[2].y), int(points[1].x), int(points[1].y), color);
+	Novice::DrawLine(int(points[3].x), int(points[3].y), int(points[0].x), int(points[0].y), color);
 }

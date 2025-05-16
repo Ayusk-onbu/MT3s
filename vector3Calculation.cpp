@@ -44,6 +44,22 @@ Vector3 Normalize(const Vector3& v) {
 	ret.z = v.z / Length(v);
 	return ret;
 }
+
+//クロス積（外積）
+Vector3 CrossProduct(const Vector3& v1, const Vector3& v2) {
+	Vector3 ret;
+	ret.x = v1.y * v2.z - v1.z * v2.y;
+	ret.y = v1.z * v2.x - v1.x * v2.z;
+	ret.z = v1.x * v2.y - v1.y * v2.x;
+	return ret;
+}
+
+//内積
+float DotProduct(const Vector3& v1, const Vector3& v2) {
+	float ret = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+	return ret;
+}
+
 //正射影
 Vector3 Project(const Vector3& v1, const Vector3& v2) {
 	Vector3 ret;
@@ -75,4 +91,16 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 							   segment.origin.z + projectedVec.z };
 	return projectedPoint;
 
+}
+
+Vector3 Perpendicular(const Vector3& vector) {
+	if (vector.x != 0.0f || vector.y != 0.0f) {
+		// XまたはYが０なら
+		// v1x * v2x + v1y * v2y + v1z * v2z
+		// x or y の片方が消える
+		// 任意の点も0を持てば良い話
+		return { -vector.y,vector.x,0.0f };
+	}
+	// Xを消して同じ値で相殺
+	return{ 0.0f,-vector.z,vector.y };
 }

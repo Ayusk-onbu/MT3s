@@ -2,6 +2,7 @@
 #include "matrix4x4Calculation.h"
 #include "vector3Calculation.h"
 #include "sphereCalculation.h"
+#include "planeCalculation.h"
 #include "drawSeries.h"
 #include "debugView.h"
 
@@ -13,13 +14,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Vector3 scaleCamera = { 1.0f,1.0f,1.0f };
+	Vector3 scaleCamera = { 1.0f,1.0f,0.250f };
 	Vector3 rotateCamera = { 0.26f,0.0f,0.0f };
 	Vector3 translateCamera = { 0.0f,1.9f,-6.49f };
 	Camera debugCamera = { scaleCamera,rotateCamera,translateCamera };
 	Matrix4x4 viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f);
 
+	const int kPlaneNum = 1;
+	Plane plane[kPlaneNum];
+	for (int i = 0;i < kPlaneNum;++i) {
+		plane[i].normal = { 0.0f,-1.0f,0.0f };
+		plane[i].distance = -3;
+	}
+	int planeColor = 0xFFFFFFFF;
 	const int kSphereNum = 2;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
@@ -54,20 +62,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↑更新処理ここまで
 		///
 
-		if (SphereHitSphere(sphere[0], sphere[1])) {
+		/*if (SphereHitSphere(sphere[0], sphere[1])) {
 			sphere[0].color = 0xFF0000Ff;
 			sphere[1].color = 0xFF0000Ff;
+		}*/
+		if (IsPlaneHitPoint(plane[0],sphere[0].center,sphere[0].radius)) {
+			sphere[0].color = 0x00FF00FF;
+			planeColor = 0x00FF00FF;
 		}
 		else {
 			sphere[0].color = 0xFFFFFFFF;
-			sphere[1].color = 0xFFFFFFFF;
+			planeColor = 0xFFFFFFFF;
 		}
 
 		///
 		/// ↓描画処理ここから
 		///
 		if (isViewSphere) {
-			for (int i = 0;i < kSphereNum;++i) {
+			for (int i = 0;i < kSphereNum - 1;++i) {
 				if (isDebugCamera) {
 					DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[i].color);
 				}
@@ -77,9 +89,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 		if (isDebugCamera) {
+			DrawPlane(plane[0], debugCamera.scale, debugCamera.rotate, debugCamera.translate,planeColor);
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
+			DrawPlane(plane[0], scaleCamera, rotateCamera, translateCamera,planeColor);
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
 		}
 
@@ -101,7 +115,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("CameraRotate", &rotateCamera.x, 0.01f);
 		ImGui::DragFloat3("sphereCenter", &sphere[0].center.x, 0.01f);
 		ImGui::DragFloat("sphereRadius", &sphere[0].radius, 0.01f);
-
+		ImGui::DragFloat3("PlaneNormal", &plane[0].normal.x, 0.1f,-5.0f, 5.0f);
+		ImGui::DragFloat("PlaneDistance", &plane[0].distance, 0.1f, -10, 10);
 		//ImGui::DragFloat3("Point", &point.x, 0.01f);
 		//ImGui::DragFloat3("Segment.origin", &segment.origin.x, 0.01f);
 		//ImGui::DragFloat3("Segment.diff", &segment.diff.x, 0.01f);
@@ -112,6 +127,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↑描画処理ここまで
 		///
+		Novice::ScreenPrintf(10, 70, "normal.radius %f", sphere[0].radius);
+
+		for (int i = 0;i < kPlaneNum;++i) {
+			plane[i].normal = Normalize(plane[i].normal);
+		}
 
 		// フレームの終了
 		Novice::EndFrame();

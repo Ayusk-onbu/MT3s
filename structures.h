@@ -24,6 +24,11 @@ struct Camera {
 	Vector3 rotate;
 	Vector3 translate;
 };
+// 平面
+struct Plane {
+	Vector3 normal;// 法線
+	float distance;// 距離
+};
 
 //直線
 struct Line {
