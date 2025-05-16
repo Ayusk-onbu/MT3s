@@ -16,6 +16,13 @@ struct Matrix4x4 {
 struct Sphere {
 	Vector3 center;
 	float radius;
+	int color;
+};
+
+struct Camera {
+	Vector3 scale;
+	Vector3 rotate;
+	Vector3 translate;
 };
 
 //直線

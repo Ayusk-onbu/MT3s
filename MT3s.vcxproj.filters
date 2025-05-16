@@ -32,6 +32,9 @@
     <ClCompile Include="drawSeries.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
+    <ClCompile Include="sphereCalculation.cpp">
+      <Filter>KamataEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="C:\KamataEngine\DirectXGame\audio\Audio.h">
@@ -136,5 +139,6 @@
     <ClInclude Include="drawSeries.h">
       <Filter>KamataEngine</Filter>
     </ClInclude>
+    <ClInclude Include="sphereCalculation.h" />
   </ItemGroup>
 </Project>

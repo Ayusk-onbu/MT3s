@@ -19,3 +19,26 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* lavel
 		}
 	}
 }
+
+Camera DebugCamera(Camera& camera,int &prePositionX,int &prePositionY) {
+	int positionX;
+	int positionY;
+	Novice::GetMousePosition(&positionX, &positionY);
+	// マウスのホイールを押していたら回転
+	if (Novice::IsPressMouse(2)) {
+		camera.rotate.y -= float(prePositionX - positionX) / 180.0f;
+		camera.rotate.x -= float(prePositionY - positionY) / 180.0f;
+	}
+	else {
+		//マウスのホイールでカメラを引く
+		camera.scale.z += float(Novice::GetWheel()) / 500.0f;
+	}
+	// マウスのクリック二つ押しで移動
+	if (Novice::IsPressMouse(0) && Novice::IsPressMouse(1)) {
+		camera.translate.x += float(prePositionX - positionX) / 10.0f;
+		camera.translate.y += float(prePositionY - positionY) / 10.0f;
+	}
+	prePositionX = positionX;
+	prePositionY = positionY;
+	return camera;
+}
