@@ -3,6 +3,7 @@
 #include "vector3Calculation.h"
 #include "sphereCalculation.h"
 #include "planeCalculation.h"
+#include "TriangleCalculation.h"
 #include "drawSeries.h"
 #include "debugView.h"
 
@@ -21,13 +22,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f);
 
-	const int kPlaneNum = 1;
-	Plane plane[kPlaneNum];
-	for (int i = 0;i < kPlaneNum;++i) {
-		plane[i].normal = { 0.0f,-1.0f,0.0f };
-		plane[i].distance = -3;
-	}
-	int planeColor = 0xFFFFFFFF;
+	Triangle triangle = {
+		{ { 0.0f, 1.73f, 0.0f },{ 1.0f, 0.0f, 0.0f },{ -1.0f, 0.0f, 0.0f }  }
+	};
+	
 	const int kSphereNum = 2;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
@@ -72,27 +70,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			sphere[0].color = 0xFF0000Ff;
 			sphere[1].color = 0xFF0000Ff;
 		}*/
-		if (isViewSphere) {
-			if (IsPlaneHitPoint(plane[0], sphere[0].center, sphere[0].radius)) {
-				sphere[0].color = 0x00FF00FF;
-				planeColor = 0x00FF00FF;
-			}
-			else {
-				sphere[0].color = 0xFFFFFFFF;
-				planeColor = 0xFFFFFFFF;
-			}
-		}
-		if (IsHitPlane2Segment(plane[0], segment,viewProjectionMatrix,viewportMatrix)) {
-			color = 0x0000FFFF;
-		}
-		else {
-			color = 0xffffffff;
-		}
+		
 
 		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
 		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
-
+		if (IsHitTriangle2Segment(triangle, segment)) {
+			color = 0x0000FFFF;
+		}
+		else {
+			color = 0xFFFFFFFF;
+		}
 
 		///
 		/// ↓描画処理ここから
@@ -108,12 +96,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 		if (isDebugCamera) {
-			DrawPlane(plane[0], debugCamera.scale, debugCamera.rotate, debugCamera.translate,planeColor);
+			DrawTriangle(triangle, debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
-			DrawPlane(plane[0], scaleCamera, rotateCamera, translateCamera,planeColor);
+			DrawTriangle(triangle, scaleCamera, rotateCamera, translateCamera, color);
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
@@ -137,9 +125,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("CameraRotate", &rotateCamera.x, 0.01f);
 		ImGui::DragFloat3("sphereCenter", &sphere[0].center.x, 0.01f);
 		ImGui::DragFloat("sphereRadius", &sphere[0].radius, 0.01f);
-		ImGui::DragFloat3("PlaneNormal", &plane[0].normal.x, 0.1f,-5.0f, 5.0f);
-		ImGui::DragFloat("PlaneDistance", &plane[0].distance, 0.1f, -10, 10);
+		//ImGui::DragFloat3("PlaneNormal", &plane[0].normal.x, 0.1f,-5.0f, 5.0f);
+		//ImGui::DragFloat("PlaneDistance", &plane[0].distance, 0.1f, -10, 10);
 		//ImGui::DragFloat3("Point", &point.x, 0.01f);
+		ImGui::DragFloat3("TriangleTranslation[0]", &triangle.vertices[0].x, -1.0f, 1.0f);
+		ImGui::DragFloat3("TriangleTranslation[1]", &triangle.vertices[1].x, -1.0f, 1.0f);
+		ImGui::DragFloat3("TriangleTranslation[2]", &triangle.vertices[2].x, -1.0f, 1.0f);
 		ImGui::DragFloat3("Segment.origin", &segment.origin.x, 0.01f);
 		ImGui::DragFloat3("Segment.diff", &segment.diff.x, 0.01f);
 
@@ -150,9 +141,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↑描画処理ここまで
 		///
 
-		for (int i = 0;i < kPlaneNum;++i) {
-			plane[i].normal = Normalize(plane[i].normal);
-		}
+		
 
 		// フレームの終了
 		Novice::EndFrame();
@@ -182,4 +171,37 @@ void ooTwo() {
 	DrawSphere(closestPointSphere, scaleCamera, rotateCamera, translateCamera, BLACK);
 	Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y),
 		static_cast<int>(end.x), static_cast<int>(end.y), 0xFFffffFF);*/
+}
+void ooThree() {
+	/*const int kPlaneNum = 1;
+	Plane plane[kPlaneNum];
+	for (int i = 0;i < kPlaneNum;++i) {
+		plane[i].normal = { 0.0f,-1.0f,0.0f };
+		plane[i].distance = -3;
+	}
+	int planeColor = 0xFFFFFFFF;
+
+	if (isViewSphere) {
+		if (IsPlaneHitPoint(plane[0], sphere[0].center, sphere[0].radius)) {
+			sphere[0].color = 0x00FF00FF;
+			planeColor = 0x00FF00FF;
+		}
+		else {
+			sphere[0].color = 0xFFFFFFFF;
+			planeColor = 0xFFFFFFFF;
+		}
+	}
+	if (IsHitPlane2Segment(plane[0], segment, viewProjectionMatrix, viewportMatrix)) {
+		color = 0x0000FFFF;
+	}
+	else {
+		color = 0xffffffff;
+	}
+
+	DrawPlane(plane[0], debugCamera.scale, debugCamera.rotate, debugCamera.translate, planeColor);
+	DrawPlane(plane[0], scaleCamera, rotateCamera, translateCamera, planeColor);
+
+	for (int i = 0;i < kPlaneNum;++i) {
+		plane[i].normal = Normalize(plane[i].normal);
+	}*/
 }

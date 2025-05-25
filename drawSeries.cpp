@@ -103,3 +103,33 @@ void DrawPlane(const Plane& plane, Vector3 scaleCamera, Vector3 rotateCamera, Ve
 	Novice::DrawLine(int(points[2].x), int(points[2].y), int(points[1].x), int(points[1].y), color);
 	Novice::DrawLine(int(points[3].x), int(points[3].y), int(points[0].x), int(points[0].y), color);
 }
+
+void DrawTriangle(const Triangle& triangle, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, int color,
+	Vector3 scale, Vector3 rotate, Vector3 translate,
+	float width, float height, float fovY, float nearClip, float farClip,
+	float left, float top, float minDepth, float maxDepth) {
+
+	Vector3 a = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, triangle.vertices[0], width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 b = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, triangle.vertices[1], width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 c = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, triangle.vertices[2], width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+
+	Novice::DrawTriangle(static_cast<int>(a.x), static_cast<int>(a.y),
+		static_cast<int>(b.x), static_cast<int>(b.y),
+		static_cast<int>(c.x), static_cast<int>(c.y), color, kFillModeWireFrame);
+}
+
+//void DrawTriangle(const Triangle& triangle, Matrix4x4& viewProjectionMatrix, Matrix4x4& viewPortMatrix, int color) {
+//	Vector3 ndcVertex = Transform(triangle.vertices[0], viewProjectionMatrix);
+//	Vector3 screenVertex = Transform(ndcVertex, viewPortMatrix);
+//	Vector3 a = { screenVertex.x,screenVertex.y,0.0f };
+//	ndcVertex = Transform(triangle.vertices[1], viewProjectionMatrix);
+//	screenVertex = Transform(ndcVertex, viewPortMatrix);
+//	Vector3 b = { screenVertex.x,screenVertex.y,0.0f };
+//	ndcVertex = Transform(triangle.vertices[2], viewProjectionMatrix);
+//	screenVertex = Transform(ndcVertex, viewPortMatrix);
+//	Vector3 c = { screenVertex.x,screenVertex.y,0.0f };
+//
+//	Novice::DrawTriangle(static_cast<int>(a.x), static_cast<int>(a.y),
+//		static_cast<int>(b.x), static_cast<int>(b.y),
+//		static_cast<int>(c.x), static_cast<int>(c.y), color, kFillModeSolid);
+//}

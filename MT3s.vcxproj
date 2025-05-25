@@ -116,6 +116,7 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
     <ClCompile Include="matrix4x4Calculation.cpp" />
     <ClCompile Include="planeCalculation.cpp" />
     <ClCompile Include="sphereCalculation.cpp" />
+    <ClCompile Include="TriangleCalculation.cpp" />
     <ClCompile Include="vector3Calculation.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -154,6 +155,7 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
     <ClInclude Include="planeCalculation.h" />
     <ClInclude Include="sphereCalculation.h" />
     <ClInclude Include="structures.h" />
+    <ClInclude Include="TriangleCalculation.h" />
     <ClInclude Include="vector3Calculation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

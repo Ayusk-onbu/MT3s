@@ -70,7 +70,7 @@ bool IsHitPlane2Segment(Plane& plane, Segment& segment, Matrix4x4 viewProjection
 	Vector3 point = { segment.origin + Multiply(t,segment.diff) };
 	Vector3 start = Transform(Transform(point, viewProjectionMatrix), viewPortMatrix);
 	if (plane.distance == point.x * plane.normal.x + point.y * plane.normal.y + point.z * plane.normal.z) {
-		std::vector<Vector3> pointData = GetPlaneVertex(plane, viewProjectionMatrix, viewPortMatrix);
+		/*std::vector<Vector3> pointData = GetPlaneVertex(plane, viewProjectionMatrix, viewPortMatrix);
 		Vector3 points[4];
 		for (int i = 0;i < 4;++i) {
 			points[i] = pointData[i];
@@ -94,7 +94,8 @@ bool IsHitPlane2Segment(Plane& plane, Segment& segment, Matrix4x4 viewProjection
 		}
 		if (isHit == 15) {
 			return true;
-		}
+		}*/
+		return true;
 	}
 	return false;
 }
