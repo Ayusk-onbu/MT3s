@@ -3,6 +3,7 @@
 #include "planeCalculation.h"
 #include "vector3Calculation.h"
 #include <Novice.h>
+#include "imgui.h"
 
 void DrawGrid(Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
 	Vector3 scale, Vector3 rotate, Vector3 translate,
@@ -84,21 +85,19 @@ void DrawPlane(const Plane& plane, Vector3 scaleCamera, Vector3 rotateCamera, Ve
 {
 	Matrix4x4 viewProjectionMatrix = MakeViewProjectionMatrix(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera,width,height,fovY,nearClip,farClip);
 	Matrix4x4 viewPortMatrix = MakeViewportMatrix(left, top, width, height, minDepth, maxDepth);
-	// 中心を決める
-	Vector3 center = Multiply(plane.distance, plane.normal);
-	// ?
-	Vector3 perpendiculars[4];
-	perpendiculars[0] = Normalize(Perpendicular(plane.normal));
-	perpendiculars[1] = { -perpendiculars[0].x,-perpendiculars[0].y,-perpendiculars[0].z };
-	perpendiculars[2] = CrossProduct(plane.normal,perpendiculars[0]);
-	perpendiculars[3] = { -perpendiculars[2].x,-perpendiculars[2].y,-perpendiculars[2].z };
-
+	std::vector<Vector3> pointData = GetPlaneVertex(plane,viewProjectionMatrix,viewPortMatrix);
 	Vector3 points[4];
-	for (int32_t index = 0;index < 4;++index) {
-		Vector3 extend = Multiply(2.0f, perpendiculars[index]);
-		Vector3 point = Add(center, extend);
-		points[index] = Transform(Transform(point, viewProjectionMatrix), viewPortMatrix);
+	for (int i = 0;i < 4;++i) {
+		points[i] = pointData[i];
 	}
+
+	ImGui::Begin("DrawPlane");
+	ImGui::SliderFloat3("points[0]", &points[0].x, -1.0f, 1.0f);
+	ImGui::SliderFloat3("points[1]", &points[1].x, -1.0f, 1.0f);
+	ImGui::SliderFloat3("points[2]", &points[2].x, -1.0f, 1.0f);
+	ImGui::SliderFloat3("points[3]", &points[3].x, -1.0f, 1.0f);
+	ImGui::End();
+
 	Novice::DrawLine(int(points[0].x), int(points[0].y), int(points[2].x), int(points[2].y), color);
 	Novice::DrawLine(int(points[1].x), int(points[1].y), int(points[3].x), int(points[3].y), color);
 	Novice::DrawLine(int(points[2].x), int(points[2].y), int(points[1].x), int(points[1].y), color);

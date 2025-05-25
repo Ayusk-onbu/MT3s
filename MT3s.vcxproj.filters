@@ -38,6 +38,9 @@
     <ClCompile Include="planeCalculation.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
+    <ClCompile Include="functions.cpp">
+      <Filter>KamataEngine\Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="C:\KamataEngine\DirectXGame\audio\Audio.h">

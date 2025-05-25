@@ -1,0 +1,34 @@
+#include "functions.h"
+#include "vector3Calculation.h"
+#include <algorithm>
+
+float cot(float theta) {
+	float ret = 1.0f / std::tanf(theta);
+	return ret;
+}
+
+int GetDegreeFromRadian(const float theta) {
+	float ret = theta * 180.0f / PI;
+	return static_cast<int>(ret);
+}
+
+float GetCosThetaFromVertex3(const Vector3& A, const Vector3& B, const Vector3& C) {
+	
+	float ab = Length(B - A);
+	float ac = Length(C - A);
+	
+	if (ab == 0.0f || ac == 0.0f) {
+	    return 0;  // 角度が計算できない場合
+	}
+	
+	Vector3 AB = B - A;
+	Vector3 AC = C - A;
+	float cosTheta = Dot(AB, AC) / (ac * ab);
+	
+	// acos に渡す前に値をクランプ
+	//cosTheta = std::clamp(cosTheta, -1.0, 1.0);
+	//float theta = static_cast<float>(std::acos(cosTheta));
+	
+	return cosTheta;
+	
+}

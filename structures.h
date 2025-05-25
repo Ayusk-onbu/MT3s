@@ -7,6 +7,25 @@ static const int kRowHeight = 20;
 
 struct Vector3 {
 	float x, y, z;
+
+	Vector3 operator+(const Vector3& other)const {
+		return{ x + other.x,y + other.y, z + other.z };
+	}
+	Vector3 operator-(const Vector3& other)const {
+		return{ x - other.x,y - other.y, z - other.z };
+	}
+	Vector3 operator*(const Vector3& other)const {
+		return{ x * other.x,y * other.y, z * other.z };
+	}
+	Vector3 operator/(const Vector3& other)const {
+		return{ x / other.x,y / other.y, z / other.z };
+	}
+	bool operator==(const Vector3& other)const {
+		if (x == other.x && y == other.y && z == other.z) {
+			return true;
+		}
+		return false;
+	}
 };
 
 struct Matrix4x4 {

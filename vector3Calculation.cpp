@@ -47,7 +47,7 @@ Vector3 Normalize(const Vector3& v) {
 
 //クロス積（外積）
 Vector3 CrossProduct(const Vector3& v1, const Vector3& v2) {
-	Vector3 ret;
+	Vector3 ret = {};
 	ret.x = v1.y * v2.z - v1.z * v2.y;
 	ret.y = v1.z * v2.x - v1.x * v2.z;
 	ret.z = v1.x * v2.y - v1.y * v2.x;
