@@ -68,7 +68,15 @@ struct Segment {
 	Vector3 diff;//終点への差分べくとる
 };
 // 軸並行う境界箱(Axis Aligned Bounding Box)
-struct AABB {
+class AABB {
+public:
 	Vector3 min;
 	Vector3 max;
+	Vector3 center()const {
+		Vector3 ret;
+		ret.x = (min.x + max.x) / 2.0f;
+		ret.y = (min.y + max.y) / 2.0f;
+		ret.z = (min.z + max.z) / 2.0f;
+		return ret;
+	}
 };

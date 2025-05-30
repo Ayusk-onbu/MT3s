@@ -27,12 +27,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		.min = {-0.5f,-0.5f,-0.5f},
 		.max = {0.0f,0.0f,0.0f}
 	};
-	AABB aabb2{
-		.min = {0.2f,0.2f,0.2f},
-		.max = {1.0f,1.0f,1.0f}
-	};
 	
-	const int kSphereNum = 2;
+	const int kSphereNum = 1;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
 		sphere[i].center = {0.0f + i,0.0f + i,0.0f + i};
@@ -40,7 +36,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		sphere[i].color = 0xFFFFFFFF;
 	}
 
-	bool isViewSphere = false;
+	bool isViewSphere = true;
 	bool isDebugCamera = false;
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
@@ -74,19 +70,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			sphere[1].color = 0xFF0000Ff;
 		}*/
 		
-		if (IsHitAABB2AABB(aabb1, aabb2))
+		if (IsHitAABB2Sphere(aabb1,sphere[0]))
 		{
 			color = 0xFF0000FF;
+			sphere[0].color = 0xFF0000FF;
 		}
 		else {
 			color = 0xFFFFFFFF;
+			sphere[0].color = 0xFFFFFFFF;
 		}
 
 		///
 		/// ↓描画処理ここから
 		///
 		if (isViewSphere) {
-			for (int i = 0;i < kSphereNum - 1;++i) {
+			for (int i = 0;i < kSphereNum;++i) {
 				if (isDebugCamera) {
 					DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[i].color);
 				}
@@ -99,14 +97,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 
 			DrawAABB(aabb1, debugCamera.scale, debugCamera.rotate, debugCamera.translate,color);
-			DrawAABB(aabb2, debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
 
 			DrawAABB(aabb1, scaleCamera, rotateCamera, translateCamera,color);
-			DrawAABB(aabb2, scaleCamera, rotateCamera, translateCamera, color);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
 		if (isDebugCamera) {
