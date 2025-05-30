@@ -4,6 +4,7 @@
 #include "sphereCalculation.h"
 #include "planeCalculation.h"
 #include "TriangleCalculation.h"
+#include "AABBCalculation.h"
 #include "drawSeries.h"
 #include "debugView.h"
 
@@ -22,8 +23,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f);
 
-	Triangle triangle = {
-		{ { 0.0f, 1.73f, 0.0f },{ 1.0f, 0.0f, 0.0f },{ -1.0f, 0.0f, 0.0f }  }
+	AABB aabb1{
+		.min = {-0.5f,-0.5f,-0.5f},
+		.max = {0.0f,0.0f,0.0f}
+	};
+	AABB aabb2{
+		.min = {0.2f,0.2f,0.2f},
+		.max = {1.0f,1.0f,1.0f}
 	};
 	
 	const int kSphereNum = 2;
@@ -39,9 +45,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
 
-	Segment segment = { {-2.0f,-1.0f,0.0f},{3.0f,2.0f,2.0f} };
-	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 	int color = 0xFFFFFFFF;
 
 	// キー入力結果を受け取る箱
@@ -71,12 +74,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			sphere[1].color = 0xFF0000Ff;
 		}*/
 		
-
-		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
-
-		if (IsHitTriangle2Segment(triangle, segment)) {
-			color = 0x0000FFFF;
+		if (IsHitAABB2AABB(aabb1, aabb2))
+		{
+			color = 0xFF0000FF;
 		}
 		else {
 			color = 0xFFFFFFFF;
@@ -96,17 +96,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 		if (isDebugCamera) {
-			DrawTriangle(triangle, debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
+
+			DrawAABB(aabb1, debugCamera.scale, debugCamera.rotate, debugCamera.translate,color);
+			DrawAABB(aabb2, debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
-			DrawTriangle(triangle, scaleCamera, rotateCamera, translateCamera, color);
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
+
+			DrawAABB(aabb1, scaleCamera, rotateCamera, translateCamera,color);
+			DrawAABB(aabb2, scaleCamera, rotateCamera, translateCamera, color);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
-		Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y),
-			static_cast<int>(end.x), static_cast<int>(end.y), color);
 		if (isDebugCamera) {
 			DebugCamera(debugCamera,preCameraPosX,preCameraPosY);
 			if (keys[DIK_RETURN]&& preKeys[DIK_RETURN] == false) {
@@ -125,23 +127,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("CameraRotate", &rotateCamera.x, 0.01f);
 		ImGui::DragFloat3("sphereCenter", &sphere[0].center.x, 0.01f);
 		ImGui::DragFloat("sphereRadius", &sphere[0].radius, 0.01f);
-		//ImGui::DragFloat3("PlaneNormal", &plane[0].normal.x, 0.1f,-5.0f, 5.0f);
-		//ImGui::DragFloat("PlaneDistance", &plane[0].distance, 0.1f, -10, 10);
-		//ImGui::DragFloat3("Point", &point.x, 0.01f);
-		ImGui::DragFloat3("TriangleTranslation[0]", &triangle.vertices[0].x, -1.0f, 1.0f);
-		ImGui::DragFloat3("TriangleTranslation[1]", &triangle.vertices[1].x, -1.0f, 1.0f);
-		ImGui::DragFloat3("TriangleTranslation[2]", &triangle.vertices[2].x, -1.0f, 1.0f);
-		ImGui::DragFloat3("Segment.origin", &segment.origin.x, 0.01f);
-		ImGui::DragFloat3("Segment.diff", &segment.diff.x, 0.01f);
-
+		ImGui::SliderFloat3("AABBmin", &aabb1.min.x, -5, 5);
+		ImGui::SliderFloat3("AABBmax", &aabb1.max.x, -5, 5);
 		//ImGui::InputFloat3("Project", &project.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
 		ImGui::End();
 #pragma endregion
 		///
 		/// ↑描画処理ここまで
 		///
-
-		
+		aabb1.min.x = (std::min)(aabb1.min.x, aabb1.max.x);
+		aabb1.max.x = (std::max)(aabb1.min.x, aabb1.max.x);
+		aabb1.min.y = (std::min)(aabb1.min.y, aabb1.max.y);
+		aabb1.max.y = (std::max)(aabb1.min.y, aabb1.max.y);
+		aabb1.min.z = (std::min)(aabb1.min.z, aabb1.max.z);
+		aabb1.max.z = (std::max)(aabb1.min.z, aabb1.max.z);
 
 		// フレームの終了
 		Novice::EndFrame();
@@ -204,4 +203,21 @@ void ooThree() {
 	for (int i = 0;i < kPlaneNum;++i) {
 		plane[i].normal = Normalize(plane[i].normal);
 	}*/
+}
+void ooFour() {
+	/*Triangle triangle = {
+		{ { 0.0f, 1.73f, 0.0f },{ 1.0f, 0.0f, 0.0f },{ -1.0f, 0.0f, 0.0f }  }
+	};
+	if (IsHitTriangle2Segment(triangle, segment)) {
+		color = 0x0000FFFF;
+	}
+	else {
+		color = 0xFFFFFFFF;
+	}
+	DrawTriangle(triangle, debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
+	DrawTriangle(triangle, scaleCamera, rotateCamera, translateCamera, color);
+	ImGui::DragFloat3("TriangleTranslation[0]", &triangle.vertices[0].x, -1.0f, 1.0f);
+	ImGui::DragFloat3("TriangleTranslation[1]", &triangle.vertices[1].x, -1.0f, 1.0f);
+	ImGui::DragFloat3("TriangleTranslation[2]", &triangle.vertices[2].x, -1.0f, 1.0f);*/
+
 }

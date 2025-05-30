@@ -44,6 +44,9 @@
     <ClCompile Include="TriangleCalculation.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
+    <ClCompile Include="AABBCalculation.cpp">
+      <Filter>KamataEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="C:\KamataEngine\DirectXGame\audio\Audio.h">
@@ -151,5 +154,6 @@
     <ClInclude Include="sphereCalculation.h" />
     <ClInclude Include="planeCalculation.h" />
     <ClInclude Include="TriangleCalculation.h" />
+    <ClInclude Include="AABBCalculation.h" />
   </ItemGroup>
 </Project>

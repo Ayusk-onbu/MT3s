@@ -108,6 +108,7 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AABBCalculation.cpp" />
     <ClCompile Include="C:\KamataEngine\Adapter\Novice.cpp" />
     <ClCompile Include="debugView.cpp" />
     <ClCompile Include="drawSeries.cpp" />
@@ -121,6 +122,7 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DirectXGame\3d\Camera.h" />
+    <ClInclude Include="AABBCalculation.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\base\StringUtility.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Matrix4x4.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Vector2.h" />
