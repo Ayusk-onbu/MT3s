@@ -25,9 +25,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	AABB aabb1{
 		.min = {-0.5f,-0.5f,-0.5f},
-		.max = {0.0f,0.0f,0.0f}
+		.max = {0.5f,0.5f,0.5f}
 	};
-	
+
+	Segment segment{
+		.origin = { -0.7f, 0.3f, 0.0f },
+		.diff = { 2.0f, -0.5f, 0.0f }
+	};
+	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
 	const int kSphereNum = 1;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
@@ -36,7 +43,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		sphere[i].color = 0xFFFFFFFF;
 	}
 
-	bool isViewSphere = true;
+	bool isViewSphere = false;
 	bool isDebugCamera = false;
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
@@ -70,14 +77,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			sphere[1].color = 0xFF0000Ff;
 		}*/
 		
-		if (IsHitAABB2Sphere(aabb1,sphere[0]))
-		{
+		
+		if (IsHitAABB2Segment(aabb1, segment)) {
 			color = 0xFF0000FF;
-			sphere[0].color = 0xFF0000FF;
 		}
 		else {
 			color = 0xFFFFFFFF;
-			sphere[0].color = 0xFFFFFFFF;
 		}
 
 		///
@@ -105,6 +110,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			DrawAABB(aabb1, scaleCamera, rotateCamera, translateCamera,color);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
+		Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y),
+			static_cast<int>(end.x), static_cast<int>(end.y), WHITE);
+
 		if (isDebugCamera) {
 			DebugCamera(debugCamera,preCameraPosX,preCameraPosY);
 			if (keys[DIK_RETURN]&& preKeys[DIK_RETURN] == false) {
@@ -123,6 +131,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("CameraRotate", &rotateCamera.x, 0.01f);
 		ImGui::DragFloat3("sphereCenter", &sphere[0].center.x, 0.01f);
 		ImGui::DragFloat("sphereRadius", &sphere[0].radius, 0.01f);
+		ImGui::DragFloat3("segmentOrijin", &segment.origin.x, 0.01f);
+		ImGui::DragFloat3("segmentDiff", &segment.diff.x, 0.01f);
 		ImGui::SliderFloat3("AABBmin", &aabb1.min.x, -5, 5);
 		ImGui::SliderFloat3("AABBmax", &aabb1.max.x, -5, 5);
 		//ImGui::InputFloat3("Project", &project.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
@@ -137,6 +147,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		aabb1.max.y = (std::max)(aabb1.min.y, aabb1.max.y);
 		aabb1.min.z = (std::min)(aabb1.min.z, aabb1.max.z);
 		aabb1.max.z = (std::max)(aabb1.min.z, aabb1.max.z);
+
+		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
 
 		// フレームの終了
 		Novice::EndFrame();

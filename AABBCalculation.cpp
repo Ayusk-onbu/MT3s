@@ -23,3 +23,28 @@ bool IsHitAABB2Sphere(const AABB& a, const Sphere& sphere) {
 	}
 	return false;
 }
+
+bool IsHitAABB2Segment(const AABB& a, const Segment& segment) {
+	
+	float txMin = (a.min.x - segment.origin.x) / segment.diff.x;
+	float txMax = (a.max.x - segment.origin.x) / segment.diff.x;
+	float tyMin = (a.min.y - segment.origin.y) / segment.diff.y;
+	float tyMax = (a.max.y - segment.origin.y) / segment.diff.y;
+	float tzMin = (a.min.z - segment.origin.z) / segment.diff.z;
+	float tzMax = (a.max.z - segment.origin.z) / segment.diff.z;
+
+	float tNearX = std::min(txMin, txMax);
+	float tNearY = std::min(tyMin, tyMax);
+	float tNearZ = std::min(tzMin, tzMax);
+	float tFarX = std::max(txMin, txMax);
+	float tFarY = std::max(tyMin, tyMax);
+	float tFarZ = std::max(tzMin, tzMax);
+	// AABBとの衝突点(貫通点)のtが小さいほう
+	float tMin = std::max(std::max(tNearX, tNearY), tNearZ);
+	// AABBとの衝突点(貫通点)のtが大きいほう
+	float tMax = std::min(std::min(tFarX, tFarY), tFarZ);
+	if (tMin <= tMax) {
+		return true;
+	}
+	return false;
+}
