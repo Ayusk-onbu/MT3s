@@ -184,6 +184,13 @@ Matrix4x4 MakeRotateZMatrix(float radian) {
 	};
 	return ret;
 }
+
+Matrix4x4 MakeRotateXYZMatrix(const Vector3& radian) {
+	Matrix4x4 ret;
+	ret = Multiply(MakeRotateXMatrix(radian.x), Multiply(MakeRotateYMatrix(radian.y), MakeRotateZMatrix(radian.z)));
+	return ret;
+}
+
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate) {
 	//SRT
 	// - [ S ] - //

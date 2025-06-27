@@ -109,12 +109,14 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AABBCalculation.cpp" />
+    <ClCompile Include="Bezier.cpp" />
     <ClCompile Include="C:\KamataEngine\Adapter\Novice.cpp" />
     <ClCompile Include="debugView.cpp" />
     <ClCompile Include="drawSeries.cpp" />
     <ClCompile Include="functions.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="matrix4x4Calculation.cpp" />
+    <ClCompile Include="OBBCalculation.cpp" />
     <ClCompile Include="planeCalculation.cpp" />
     <ClCompile Include="sphereCalculation.cpp" />
     <ClCompile Include="TriangleCalculation.cpp" />
@@ -123,6 +125,7 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
   <ItemGroup>
     <ClInclude Include="..\DirectXGame\3d\Camera.h" />
     <ClInclude Include="AABBCalculation.h" />
+    <ClInclude Include="Bezier.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\base\StringUtility.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Matrix4x4.h" />
     <ClInclude Include="C:\KamataEngine\DirectXGame\math\Vector2.h" />
@@ -154,6 +157,7 @@ xcopy C:\KamataEngine\DirectXGame\Resources "$(OutDirFullPath)NoviceResources" /
     <ClInclude Include="drawSeries.h" />
     <ClInclude Include="functions.h" />
     <ClInclude Include="matrix4x4Calculation.h" />
+    <ClInclude Include="OBBCalculation.h" />
     <ClInclude Include="planeCalculation.h" />
     <ClInclude Include="sphereCalculation.h" />
     <ClInclude Include="structures.h" />

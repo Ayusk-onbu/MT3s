@@ -1,5 +1,6 @@
 #pragma once
 #include "structures.h"
+#include "OBBCalculation.h"
 
 void DrawGrid(Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
 	Vector3 scale = { 1.0f,1.0f,1.0f }, Vector3 rotate = { 0.0f,0.0f,0.0f }, Vector3 translate = { 0.0f,0.0f,0.0f },

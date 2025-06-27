@@ -32,3 +32,15 @@ float GetCosThetaFromVertex3(const Vector3& A, const Vector3& B, const Vector3& 
 	return cosTheta;
 	
 }
+
+float Lerp(float v1, float v2, float t) {
+	return v1 + (v2 - v1) * t;
+}
+
+Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
+	return {
+		Lerp(v1.x,v2.x,t),
+		Lerp(v1.y,v2.y,t),
+		Lerp(v1.z,v2.z,t)
+	};
+}

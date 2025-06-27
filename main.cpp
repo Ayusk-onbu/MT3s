@@ -1,11 +1,13 @@
 #include <Novice.h>
 #include "matrix4x4Calculation.h"
 #include "vector3Calculation.h"
+#include "OBBCalculation.h"
 #include "sphereCalculation.h"
 #include "planeCalculation.h"
 #include "TriangleCalculation.h"
 #include "AABBCalculation.h"
 #include "drawSeries.h"
+#include "Bezier.h"
 #include "debugView.h"
 
 const char kWindowTitle[] = "LE2A_10_ハマダ_カズヤ_MT3";
@@ -23,11 +25,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f);
 
-	AABB aabb1{
-		.min = {-0.5f,-0.5f,-0.5f},
-		.max = {0.5f,0.5f,0.5f}
-	};
-
 	Segment segment{
 		.origin = { -0.7f, 0.3f, 0.0f },
 		.diff = { 2.0f, -0.5f, 0.0f }
@@ -35,20 +32,38 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
 	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
-	const int kSphereNum = 1;
+	Bezier bezier;
+	Vector3 controlPos[3] = {
+		{-0.8f,0.58f,1.0f},
+		{1.76f,1.0f,-0.3f},
+		{0.94f,-0.7f,2.3f}
+	};
+
+	const int kSphereNum = 3;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
-		sphere[i].center = {0.0f + i,0.0f + i,0.0f + i};
-		sphere[i].radius = 1.0f * (1 + i);
-		sphere[i].color = 0xFFFFFFFF;
+		sphere[i].center = controlPos[i];
+		sphere[i].radius = 0.1f * (1 + 0);
+		sphere[i].color = 0x000000FF;
 	}
 
-	bool isViewSphere = false;
+	Vector3 scale = { sphere[0].radius, sphere[0].radius, sphere[0].radius };
+	Vector3 rotate = { 0.0f,0.0f,0.0f };
+	Vector3 center = { 0.0f,0.0f,0.0f };
+
+	OBB obb;
+	obb.Setsize(scale);
+	obb.SetOrientations(rotate);
+	obb.SetCenter(center);
+
+	
+
+	bool isViewSphere = true;
 	bool isDebugCamera = false;
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
 
-	int color = 0xFFFFFFFF;
+	int color = 0x0000FFFF;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -77,13 +92,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			sphere[1].color = 0xFF0000Ff;
 		}*/
 		
+
+		for (int i = 0;i < kSphereNum;++i) {
+			sphere[i].center = controlPos[i];
+		}
+
+		obb.Setsize(scale);
+		obb.SetOrientations(rotate);
+		obb.SetCenter(center);
 		
-		if (IsHitAABB2Segment(aabb1, segment)) {
+		/*if (IsHitOBB2Sphere(obb, sphere[0])) {
 			color = 0xFF0000FF;
 		}
 		else {
-			color = 0xFFFFFFFF;
-		}
+			color = 0xffffffff;
+		}*/
 
 		///
 		/// ↓描画処理ここから
@@ -92,22 +115,35 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			for (int i = 0;i < kSphereNum;++i) {
 				if (isDebugCamera) {
 					DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[i].color);
+					//DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
 				}
 				else {
 					DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, sphere[i].color);
+					//DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, color);
 				}
 			}
 		}
 		if (isDebugCamera) {
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
+			for (int i = 0;i < 10;++i) {
+				float t = 0;
+				t = (10.0f - i) / 10.0f;
+				bezier.Draw(controlPos[0], controlPos[1], controlPos[2], t,
+					debugCamera.scale, debugCamera.rotate, debugCamera.translate,color);
+			}
 
-			DrawAABB(aabb1, debugCamera.scale, debugCamera.rotate, debugCamera.translate,color);
+			obb.Draw(debugCamera.scale, debugCamera.rotate, debugCamera.translate,color);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
-
-			DrawAABB(aabb1, scaleCamera, rotateCamera, translateCamera,color);
+			for (int i = 0;i < 10;++i) {
+				float t = 0;
+				t = (10.0f - i) / 10.0f;
+				bezier.Draw(controlPos[0], controlPos[1], controlPos[2], t,
+					scaleCamera, rotateCamera, translateCamera, color);
+			}
+			obb.Draw(scaleCamera, rotateCamera, translateCamera, color);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
 		Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y),
@@ -133,20 +169,23 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat("sphereRadius", &sphere[0].radius, 0.01f);
 		ImGui::DragFloat3("segmentOrijin", &segment.origin.x, 0.01f);
 		ImGui::DragFloat3("segmentDiff", &segment.diff.x, 0.01f);
-		ImGui::SliderFloat3("AABBmin", &aabb1.min.x, -5, 5);
-		ImGui::SliderFloat3("AABBmax", &aabb1.max.x, -5, 5);
+
+		ImGui::Text("Bezier");
+		ImGui::DragFloat3("controlPosZ", &controlPos[0].x, 0.01f);
+		ImGui::DragFloat3("controlPosF", &controlPos[1].x, 0.01f);
+		ImGui::DragFloat3("controlPosS", &controlPos[2].x, 0.01f);
+		
+		ImGui::SliderFloat3("obb.Scale", &scale.x, -1, 1);
+		ImGui::SliderFloat3("obb.Rotate", &rotate.x, -360, 360);
+		ImGui::SliderFloat3("obb.translate", &center.x, -1, 1);
+
 		//ImGui::InputFloat3("Project", &project.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
 		ImGui::End();
 #pragma endregion
 		///
 		/// ↑描画処理ここまで
 		///
-		aabb1.min.x = (std::min)(aabb1.min.x, aabb1.max.x);
-		aabb1.max.x = (std::max)(aabb1.min.x, aabb1.max.x);
-		aabb1.min.y = (std::min)(aabb1.min.y, aabb1.max.y);
-		aabb1.max.y = (std::max)(aabb1.min.y, aabb1.max.y);
-		aabb1.min.z = (std::min)(aabb1.min.z, aabb1.max.z);
-		aabb1.max.z = (std::max)(aabb1.min.z, aabb1.max.z);
+		
 
 		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
 		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
@@ -230,4 +269,26 @@ void ooFour() {
 	ImGui::DragFloat3("TriangleTranslation[1]", &triangle.vertices[1].x, -1.0f, 1.0f);
 	ImGui::DragFloat3("TriangleTranslation[2]", &triangle.vertices[2].x, -1.0f, 1.0f);*/
 
+}
+void ooFive() {
+	/*AABB aabb1{
+		.min = {-0.5f,-0.5f,-0.5f},
+		.max = {0.5f,0.5f,0.5f}
+	};
+	if (IsHitAABB2Segment(aabb1, segment)) {
+		color = 0xFF0000FF;
+	}
+	else {
+		color = 0xFFFFFFFF;
+	}
+	DrawAABB(aabb1, debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
+	DrawAABB(aabb1, scaleCamera, rotateCamera, translateCamera, color);
+	ImGui::SliderFloat3("AABBmin", &aabb1.min.x, -5, 5);
+	ImGui::SliderFloat3("AABBmax", &aabb1.max.x, -5, 5);
+	aabb1.min.x = (std::min)(aabb1.min.x, aabb1.max.x);
+	aabb1.max.x = (std::max)(aabb1.min.x, aabb1.max.x);
+	aabb1.min.y = (std::min)(aabb1.min.y, aabb1.max.y);
+	aabb1.max.y = (std::max)(aabb1.min.y, aabb1.max.y);
+	aabb1.min.z = (std::min)(aabb1.min.z, aabb1.max.z);
+	aabb1.max.z = (std::max)(aabb1.min.z, aabb1.max.z);*/
 }

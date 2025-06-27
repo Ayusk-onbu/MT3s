@@ -27,6 +27,8 @@ Matrix4x4 MakeRotateXMatrix(float radian);
 Matrix4x4 MakeRotateYMatrix(float radian);
 //ｚ軸の回転
 Matrix4x4 MakeRotateZMatrix(float radian);
+// XYZ軸の回転
+Matrix4x4 MakeRotateXYZMatrix(const Vector3& radian);
 
 /// <summary>
 /// アフィン変換行列の作成

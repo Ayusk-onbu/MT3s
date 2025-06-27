@@ -47,6 +47,12 @@
     <ClCompile Include="AABBCalculation.cpp">
       <Filter>KamataEngine</Filter>
     </ClCompile>
+    <ClCompile Include="OBBCalculation.cpp">
+      <Filter>KamataEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="Bezier.cpp">
+      <Filter>KamataEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="C:\KamataEngine\DirectXGame\audio\Audio.h">
@@ -155,5 +161,7 @@
     <ClInclude Include="planeCalculation.h" />
     <ClInclude Include="TriangleCalculation.h" />
     <ClInclude Include="AABBCalculation.h" />
+    <ClInclude Include="OBBCalculation.h" />
+    <ClInclude Include="Bezier.h" />
   </ItemGroup>
 </Project>
