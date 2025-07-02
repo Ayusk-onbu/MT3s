@@ -46,6 +46,8 @@ Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float botto
 //ViewProjectionMatrix
 Matrix4x4 MakeViewProjectionMatrix(Vector3 scale, Vector3 rotate, Vector3 translate, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
 	float width = 1280.0f, float height = 720.0f, float fovY = 0.45f, float nearClip = 0.1f, float farClip = 100.0f);
+Matrix4x4 MakeViewProjectionMatrix(Matrix4x4 world, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	float width = 1280.0f, float height = 720.0f, float fovY = 0.45f, float nearClip = 0.1f, float farClip = 100.0f);
 //ビューポート変換行列
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 //レンダリングパイプライン
@@ -53,3 +55,7 @@ Vector3 RenderingPipelineVer2(Vector3 scale, Vector3 rotate, Vector3 translate,
 	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, 
 	Vector3 localVertex,float width = 1280.0f,float height = 720.0f, float fovY = 0.45f, float nearClip = 0.1f,float farClip = 100.0f,
 	float left = 0.0f,float top = 0.0f,float minDepth = 0.0f, float maxDepth = 0.0f);
+Vector3 RenderingPipelineVer2(Matrix4x4 world,
+	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	Vector3 localVertex, float width = 1280.0f, float height = 720.0f, float fovY = 0.45f, float nearClip = 0.1f, float farClip = 100.0f,
+	float left = 0.0f, float top = 0.0f, float minDepth = 0.0f, float maxDepth = 0.0f);

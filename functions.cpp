@@ -1,6 +1,7 @@
 #include "functions.h"
 #include "vector3Calculation.h"
 #include <algorithm>
+#include "matrix4x4Calculation.h"
 
 float cot(float theta) {
 	float ret = 1.0f / std::tanf(theta);
@@ -43,4 +44,11 @@ Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t) {
 		Lerp(v1.y,v2.y,t),
 		Lerp(v1.z,v2.z,t)
 	};
+}
+
+Matrix4x4 MakeHierarchy(Vector3& scale, Vector3& rotate, Vector3& translate, Matrix4x4 world) {
+	Matrix4x4 children;
+	children = MakeAffineMatrix(scale, rotate, translate);
+	children = Multiply(children, world);
+	return children;
 }

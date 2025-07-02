@@ -232,6 +232,15 @@ Matrix4x4 MakeViewProjectionMatrix(Vector3 scale, Vector3 rotate, Vector3 transl
 	return worldViewProjectionMatrix;
 }
 
+Matrix4x4 MakeViewProjectionMatrix(Matrix4x4 world, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	float width, float height, float fovY, float nearClip, float farClip) {
+	Matrix4x4 cameraMatrix = MakeAffineMatrix(scaleCamera, rotateCamera, translateCamera);
+	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
+	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(fovY, width / height, nearClip, farClip);
+	Matrix4x4 worldViewProjectionMatrix = Multiply(world, Multiply(viewMatrix, projectionMatrix));
+	return worldViewProjectionMatrix;
+}
+
 //ビューポート変換行列
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth) {
 	Matrix4x4 ret = {
@@ -253,6 +262,20 @@ Vector3 RenderingPipelineVer2(Vector3 scale, Vector3 rotate, Vector3 translate,
 	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(fovY, width / height, nearClip, farClip);
 	Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
+	Matrix4x4 viewportMatrix = MakeViewportMatrix(left, top, width, height, minDepth, maxDepth);
+	Vector3 ndcVertex = Transform(localVertex, worldViewProjectionMatrix);
+	Vector3 screenVertex = Transform(ndcVertex, viewportMatrix);
+	return screenVertex;
+}
+
+Vector3 RenderingPipelineVer2(Matrix4x4 world,
+	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	Vector3 localVertex, float width, float height, float fovY, float nearClip, float farClip,
+	float left, float top, float minDepth, float maxDepth) {
+	Matrix4x4 cameraMatrix = MakeAffineMatrix(scaleCamera, rotateCamera, translateCamera);
+	Matrix4x4 viewMatrix = Inverse(cameraMatrix);
+	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(fovY, width / height, nearClip, farClip);
+	Matrix4x4 worldViewProjectionMatrix = Multiply(world, Multiply(viewMatrix, projectionMatrix));
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(left, top, width, height, minDepth, maxDepth);
 	Vector3 ndcVertex = Transform(localVertex, worldViewProjectionMatrix);
 	Vector3 screenVertex = Transform(ndcVertex, viewportMatrix);

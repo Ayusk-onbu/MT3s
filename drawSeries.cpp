@@ -78,6 +78,47 @@ void DrawSphere(const Sphere& sphere, Vector3 scaleCamera, Vector3 rotateCamera,
 	}
 }
 
+void DrawSphere(const Sphere& sphere, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, int color,
+	Matrix4x4 world,
+	float width, float height, float fovY, float nearClip, float farClip,
+	float left, float top, float minDepth, float maxDepth) {
+	const uint32_t kSubdivision = 10;
+	const float kLonEvery = 1.0f / kSubdivision * PI;//緯度分割一つ分の角度
+	const float kLatEvery = 2.0f / kSubdivision * PI;//軽度分割一つ分の角度
+	//緯度の方向に分割 -π/2～π/2
+	for (uint32_t latIndex = 0;latIndex < kSubdivision;++latIndex) {
+		float lat = -PI / 2.0f + kLatEvery * latIndex;//現在の緯度
+		//緯度の方向に分割 0～2π
+		for (uint32_t lonIndex = 0;lonIndex < kSubdivision;++lonIndex) {
+			float lon = lonIndex * kLonEvery;//現在の軽度
+			//world座標系でのa,b,cを求める
+			Vector3 a, b, c;
+			a = { std::cos(lat) * std::cos(lon),std::sin(lat),std::cos(lat) * std::sin(lon) };
+			b = { std::cos(lat + kLatEvery) * std::cos(lon),std::sin(lat + kLatEvery),std::cos(lat + kLatEvery) * std::sin(lon) };
+			c = { std::cos(lat) * std::cos(lon + kLonEvery),std::sin(lat),std::cos(lat) * std::sin(lon + kLonEvery) };
+
+			a = { a.x * sphere.radius + sphere.center.x,a.y * sphere.radius + sphere.center.y,a.z * sphere.radius + sphere.center.z };
+			b = { b.x * sphere.radius + sphere.center.x,b.y * sphere.radius + sphere.center.y,b.z * sphere.radius + sphere.center.z };
+			c = { c.x * sphere.radius + sphere.center.x,c.y * sphere.radius + sphere.center.y,c.z * sphere.radius + sphere.center.z };
+
+			a = RenderingPipelineVer2(world, scaleCamera, rotateCamera, translateCamera, a, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+			b = RenderingPipelineVer2(world, scaleCamera, rotateCamera, translateCamera, b, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+			c = RenderingPipelineVer2(world, scaleCamera, rotateCamera, translateCamera, c, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+
+			Novice::DrawLine(static_cast<int>(a.x),
+				static_cast<int>(a.y),
+				static_cast<int>(b.x),
+				static_cast<int>(b.y),
+				color);
+			Novice::DrawLine(static_cast<int>(b.x),
+				static_cast<int>(b.y),
+				static_cast<int>(c.x),
+				static_cast<int>(c.y),
+				color);
+		}
+	}
+}
+
 void DrawPlane(const Plane& plane, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera, int color,
 	Vector3 scale, Vector3 rotate, Vector3 translate,
 	float width, float height, float fovY, float nearClip, float farClip,

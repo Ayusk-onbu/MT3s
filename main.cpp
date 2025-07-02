@@ -9,6 +9,7 @@
 #include "drawSeries.h"
 #include "Bezier.h"
 #include "debugView.h"
+#include "functions.h"
 
 const char kWindowTitle[] = "LE2A_10_ハマダ_カズヤ_MT3";
 
@@ -32,38 +33,45 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
 	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
-	Bezier bezier;
-	Vector3 controlPos[3] = {
-		{-0.8f,0.58f,1.0f},
-		{1.76f,1.0f,-0.3f},
-		{0.94f,-0.7f,2.3f}
+
+	Vector3 scale[3] = {
+		{ 1.0f,1.0f,1.0f },
+		{ 1.0f,1.0f,1.0f },
+		{ 1.0f,1.0f,1.0f }
 	};
+
+	Vector3 rotate[3] = {
+		{ 0.0f,0.0f,-6.8f },
+		{ 0.0f,0.0f,-1.4f },
+		{ 0.0f,0.0f,0.0f }
+	};
+
+	Vector3 translate[3] = {
+		{ 0.2f, 0.0f, 0.0f },
+		{ 0.4f, 0.0f, 0.0f },
+		{ 0.3f, 0.0f, 0.0f }
+	};
+
+	Vector3 startH[2];
+	
+	Vector3 endH[2];
+	
 
 	const int kSphereNum = 3;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
-		sphere[i].center = controlPos[i];
+		sphere[i].center = translate[i];
 		sphere[i].radius = 0.1f * (1 + 0);
 		sphere[i].color = 0x000000FF;
 	}
 
-	Vector3 scale = { sphere[0].radius, sphere[0].radius, sphere[0].radius };
-	Vector3 rotate = { 0.0f,0.0f,0.0f };
-	Vector3 center = { 0.0f,0.0f,0.0f };
-
-	OBB obb;
-	obb.Setsize(scale);
-	obb.SetOrientations(rotate);
-	obb.SetCenter(center);
-
 	
-
 	bool isViewSphere = true;
 	bool isDebugCamera = false;
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
 
-	int color = 0x0000FFFF;
+	//int color = 0x0000FFFF;
 
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
@@ -81,32 +89,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓更新処理ここから
 		///
-#pragma region CameraControl
-#pragma endregion
+
+		Matrix4x4 parentWorld = MakeAffineMatrix(scale[0], rotate[0], translate[0]);
+
+		/*segmentH[0].origin = {parentWorld.m[3][0],parentWorld.m[3][1] ,parentWorld.m[3][2] };
+		segmentH[0].diff = { MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld).m[3][0],MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld).m[3][1] ,MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld).m[3][2] };
+		segmentH[1].origin = segmentH[0].diff;
+		segmentH[1].diff = { MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)).m[3][0],
+			MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)).m[3][1] ,
+			MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)).m[3][2] };*/
+		
+		//Matrix4x4 viewProjectionMatrixH = MakeViewProjectionMatrix(parentWorld, scaleCamera, rotateCamera, translateCamera);
+		startH[0] = RenderingPipelineVer2(parentWorld, scaleCamera, rotateCamera, translateCamera, sphere[0].center, 1280.0f, 720.0f, 0.45f, 0.1f, 100.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+		//viewProjectionMatrixH = MakeViewProjectionMatrix(MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld), scaleCamera, rotateCamera, translateCamera);
+		endH[0] = RenderingPipelineVer2(MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld), scaleCamera, rotateCamera, translateCamera, sphere[1].center, 1280.0f, 720.0f, 0.45f, 0.1f, 100.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+		//viewProjectionMatrixH = MakeViewProjectionMatrix(MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld), scaleCamera, rotateCamera, translateCamera);
+		startH[1] = endH[0];
+		//viewProjectionMatrixH = MakeViewProjectionMatrix(MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)), scaleCamera, rotateCamera, translateCamera);
+		endH[1] = RenderingPipelineVer2(MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)), scaleCamera, rotateCamera, translateCamera, sphere[2].center, 1280.0f, 720.0f, 0.45f, 0.1f, 100.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 		///
 		/// ↑更新処理ここまで
 		///
 
-		/*if (SphereHitSphere(sphere[0], sphere[1])) {
-			sphere[0].color = 0xFF0000Ff;
-			sphere[1].color = 0xFF0000Ff;
-		}*/
 		
-
-		for (int i = 0;i < kSphereNum;++i) {
-			sphere[i].center = controlPos[i];
-		}
-
-		obb.Setsize(scale);
-		obb.SetOrientations(rotate);
-		obb.SetCenter(center);
-		
-		/*if (IsHitOBB2Sphere(obb, sphere[0])) {
-			color = 0xFF0000FF;
-		}
-		else {
-			color = 0xffffffff;
-		}*/
 
 		///
 		/// ↓描画処理ここから
@@ -114,41 +119,39 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (isViewSphere) {
 			for (int i = 0;i < kSphereNum;++i) {
 				if (isDebugCamera) {
-					DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[i].color);
+					//DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[i].color);
+					//
 					//DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
 				}
 				else {
-					DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, sphere[i].color);
+					//DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, sphere[i].color);
 					//DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, color);
 				}
 			}
 		}
 		if (isDebugCamera) {
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
-			for (int i = 0;i < 10;++i) {
-				float t = 0;
-				t = (10.0f - i) / 10.0f;
-				bezier.Draw(controlPos[0], controlPos[1], controlPos[2], t,
-					debugCamera.scale, debugCamera.rotate, debugCamera.translate,color);
-			}
-
-			obb.Draw(debugCamera.scale, debugCamera.rotate, debugCamera.translate,color);
+			
+			DrawSphere(sphere[0], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[0].color,parentWorld);
+			DrawSphere(sphere[1], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[1].color, MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld));
+			DrawSphere(sphere[2], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[2].color, MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)));
+			
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
-			for (int i = 0;i < 10;++i) {
-				float t = 0;
-				t = (10.0f - i) / 10.0f;
-				bezier.Draw(controlPos[0], controlPos[1], controlPos[2], t,
-					scaleCamera, rotateCamera, translateCamera, color);
-			}
-			obb.Draw(scaleCamera, rotateCamera, translateCamera, color);
+			DrawSphere(sphere[0], scaleCamera, rotateCamera, translateCamera, sphere[0].color, parentWorld);
+			DrawSphere(sphere[1], scaleCamera, rotateCamera, translateCamera, sphere[1].color, MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld));
+			DrawSphere(sphere[2], scaleCamera, rotateCamera, translateCamera, sphere[2].color, MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)));
+
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
 		Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y),
 			static_cast<int>(end.x), static_cast<int>(end.y), WHITE);
-
+		for (int i = 0;i < 2;++i) {
+			Novice::DrawLine(static_cast<int>(startH[i].x), static_cast<int>(startH[i].y),
+				static_cast<int>(endH[i].x), static_cast<int>(endH[i].y), WHITE);
+		}
 		if (isDebugCamera) {
 			DebugCamera(debugCamera,preCameraPosX,preCameraPosY);
 			if (keys[DIK_RETURN]&& preKeys[DIK_RETURN] == false) {
@@ -163,6 +166,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region ImGui
 		ImGui::Begin("Debug");
+
+		ImGui::DragFloat3("sholderScale", &scale[0].x, 0.01f);
+		ImGui::DragFloat3("sholderRotate", &rotate[0].x, 0.01f);
+		ImGui::DragFloat3("sholderTranslate", &translate[0].x, 0.01f);
+
+		ImGui::DragFloat3("elbScale", &scale[1].x, 0.01f);
+		ImGui::DragFloat3("elbRotate", &rotate[1].x, 0.01f);
+		ImGui::DragFloat3("elbTranslate", &translate[1].x, 0.01f);
+
+		ImGui::DragFloat3("handScale", &scale[2].x, 0.01f);
+		ImGui::DragFloat3("handRotate", &rotate[2].x, 0.01f);
+		ImGui::DragFloat3("handTranslate", &translate[2].x, 0.01f);
+
 		ImGui::DragFloat3("CameraTranslate", &translateCamera.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &rotateCamera.x, 0.01f);
 		ImGui::DragFloat3("sphereCenter", &sphere[0].center.x, 0.01f);
@@ -170,15 +186,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("segmentOrijin", &segment.origin.x, 0.01f);
 		ImGui::DragFloat3("segmentDiff", &segment.diff.x, 0.01f);
 
-		ImGui::Text("Bezier");
-		ImGui::DragFloat3("controlPosZ", &controlPos[0].x, 0.01f);
-		ImGui::DragFloat3("controlPosF", &controlPos[1].x, 0.01f);
-		ImGui::DragFloat3("controlPosS", &controlPos[2].x, 0.01f);
 		
-		ImGui::SliderFloat3("obb.Scale", &scale.x, -1, 1);
-		ImGui::SliderFloat3("obb.Rotate", &rotate.x, -360, 360);
-		ImGui::SliderFloat3("obb.translate", &center.x, -1, 1);
-
 		//ImGui::InputFloat3("Project", &project.x, "%.3f", ImGuiInputTextFlags_ReadOnly);
 		ImGui::End();
 #pragma endregion
