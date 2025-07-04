@@ -34,37 +34,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
 
-	Vector3 scale[3] = {
-		{ 1.0f,1.0f,1.0f },
-		{ 1.0f,1.0f,1.0f },
-		{ 1.0f,1.0f,1.0f }
-	};
-
-	Vector3 rotate[3] = {
-		{ 0.0f,0.0f,-6.8f },
-		{ 0.0f,0.0f,-1.4f },
-		{ 0.0f,0.0f,0.0f }
-	};
-
-	Vector3 translate[3] = {
-		{ 0.2f, 0.0f, 0.0f },
-		{ 0.4f, 0.0f, 0.0f },
-		{ 0.3f, 0.0f, 0.0f }
-	};
-
-	Vector3 startH[2];
-	
-	Vector3 endH[2];
-	
-
 	const int kSphereNum = 3;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
-		sphere[i].center = translate[i];
+		sphere[i].center = Vector3(0.0f, 0.0f, 0.0f);
 		sphere[i].radius = 0.1f * (1 + 0);
 		sphere[i].color = 0x000000FF;
 	}
 
+	Vector3 a{ 0.2f, 1.0f, 0.0f };
+	Vector3 b{ 2.4f,3.1f,1.2f };
+	Vector3 c = a + b;
+	Vector3 d = a - b;
+	Vector3 e = a * 2.4f;
+	Vector3 rotate{ 0.4f,1.43f,-0.8f };
+	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
+	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
+	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
+	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;
 	
 	bool isViewSphere = true;
 	bool isDebugCamera = false;
@@ -90,28 +77,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		Matrix4x4 parentWorld = MakeAffineMatrix(scale[0], rotate[0], translate[0]);
 
-		/*segmentH[0].origin = {parentWorld.m[3][0],parentWorld.m[3][1] ,parentWorld.m[3][2] };
-		segmentH[0].diff = { MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld).m[3][0],MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld).m[3][1] ,MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld).m[3][2] };
-		segmentH[1].origin = segmentH[0].diff;
-		segmentH[1].diff = { MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)).m[3][0],
-			MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)).m[3][1] ,
-			MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)).m[3][2] };*/
-		
-		//Matrix4x4 viewProjectionMatrixH = MakeViewProjectionMatrix(parentWorld, scaleCamera, rotateCamera, translateCamera);
-		startH[0] = RenderingPipelineVer2(parentWorld, scaleCamera, rotateCamera, translateCamera, sphere[0].center, 1280.0f, 720.0f, 0.45f, 0.1f, 100.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-		//viewProjectionMatrixH = MakeViewProjectionMatrix(MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld), scaleCamera, rotateCamera, translateCamera);
-		endH[0] = RenderingPipelineVer2(MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld), scaleCamera, rotateCamera, translateCamera, sphere[1].center, 1280.0f, 720.0f, 0.45f, 0.1f, 100.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-		//viewProjectionMatrixH = MakeViewProjectionMatrix(MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld), scaleCamera, rotateCamera, translateCamera);
-		startH[1] = endH[0];
-		//viewProjectionMatrixH = MakeViewProjectionMatrix(MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)), scaleCamera, rotateCamera, translateCamera);
-		endH[1] = RenderingPipelineVer2(MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)), scaleCamera, rotateCamera, translateCamera, sphere[2].center, 1280.0f, 720.0f, 0.45f, 0.1f, 100.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+
 		///
 		/// ↑更新処理ここまで
 		///
 
-		
+		ImGui::Begin("Window");
+		ImGui::Text("c:%f, %f, %f", c.x, c.y, c.z);
+		ImGui::Text("d:%f, %f, %f", d.x, d.y, d.z);
+		ImGui::Text("e:%f, %f, %f", e.x, e.y, e.z);
+		ImGui::Text(
+			"matrix:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n",
+			rotateMatrix.m[0][0], rotateMatrix.m[0][1], rotateMatrix.m[0][2], rotateMatrix.m[0][3],
+			rotateMatrix.m[1][0], rotateMatrix.m[1][1], rotateMatrix.m[1][2], rotateMatrix.m[1][3],
+			rotateMatrix.m[2][0], rotateMatrix.m[2][1], rotateMatrix.m[2][2], rotateMatrix.m[2][3],
+			rotateMatrix.m[3][0], rotateMatrix.m[3][1], rotateMatrix.m[3][2], rotateMatrix.m[3][3]
+		);
+		ImGui::End();
 
 		///
 		/// ↓描画処理ここから
@@ -132,26 +115,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (isDebugCamera) {
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 			
-			DrawSphere(sphere[0], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[0].color,parentWorld);
-			DrawSphere(sphere[1], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[1].color, MakeHierarchy(scale[1],rotate[1],translate[1],parentWorld));
-			DrawSphere(sphere[2], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[2].color, MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)));
-			
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
-			DrawSphere(sphere[0], scaleCamera, rotateCamera, translateCamera, sphere[0].color, parentWorld);
-			DrawSphere(sphere[1], scaleCamera, rotateCamera, translateCamera, sphere[1].color, MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld));
-			DrawSphere(sphere[2], scaleCamera, rotateCamera, translateCamera, sphere[2].color, MakeHierarchy(scale[2], rotate[2], translate[2], MakeHierarchy(scale[1], rotate[1], translate[1], parentWorld)));
 
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
-		Novice::DrawLine(static_cast<int>(start.x), static_cast<int>(start.y),
-			static_cast<int>(end.x), static_cast<int>(end.y), WHITE);
-		for (int i = 0;i < 2;++i) {
-			Novice::DrawLine(static_cast<int>(startH[i].x), static_cast<int>(startH[i].y),
-				static_cast<int>(endH[i].x), static_cast<int>(endH[i].y), WHITE);
-		}
+
 		if (isDebugCamera) {
 			DebugCamera(debugCamera,preCameraPosX,preCameraPosY);
 			if (keys[DIK_RETURN]&& preKeys[DIK_RETURN] == false) {
@@ -167,17 +138,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #pragma region ImGui
 		ImGui::Begin("Debug");
 
-		ImGui::DragFloat3("sholderScale", &scale[0].x, 0.01f);
-		ImGui::DragFloat3("sholderRotate", &rotate[0].x, 0.01f);
-		ImGui::DragFloat3("sholderTranslate", &translate[0].x, 0.01f);
-
-		ImGui::DragFloat3("elbScale", &scale[1].x, 0.01f);
-		ImGui::DragFloat3("elbRotate", &rotate[1].x, 0.01f);
-		ImGui::DragFloat3("elbTranslate", &translate[1].x, 0.01f);
-
-		ImGui::DragFloat3("handScale", &scale[2].x, 0.01f);
-		ImGui::DragFloat3("handRotate", &rotate[2].x, 0.01f);
-		ImGui::DragFloat3("handTranslate", &translate[2].x, 0.01f);
+		
 
 		ImGui::DragFloat3("CameraTranslate", &translateCamera.x, 0.01f);
 		ImGui::DragFloat3("CameraRotate", &rotateCamera.x, 0.01f);

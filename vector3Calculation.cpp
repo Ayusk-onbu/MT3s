@@ -104,3 +104,36 @@ Vector3 Perpendicular(const Vector3& vector) {
 	// Xを消して同じ値で相殺
 	return{ 0.0f,-vector.z,vector.y };
 }
+
+Vector3 operator+(const Vector3& v1, const Vector3& v2) {
+
+	Vector3 ret;
+	ret.x = v1.x + v2.x;
+	ret.y = v1.y + v2.y;
+	ret.z = v1.z + v2.z;
+	return ret;
+}
+
+Vector3 operator-(const Vector3& v1, const Vector3& v2) {
+	Vector3 ret;
+	ret.x = v1.x - v2.x;
+	ret.y = v1.y - v2.y;
+	ret.z = v1.z - v2.z;
+	return ret;
+}
+
+Vector3 operator*(float scaler, const Vector3& v) {
+	Vector3 ret;
+	ret.x = v.x * scaler;
+	ret.y = v.y * scaler;
+	ret.z = v.z * scaler;
+	return ret;
+}
+
+Vector3 operator*(const Vector3& v, float scaler) {
+	Vector3 ret;
+	ret.x = v.x * scaler;
+	ret.y = v.y * scaler;
+	ret.z = v.z * scaler;
+	return ret;
+}

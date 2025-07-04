@@ -20,6 +20,9 @@ struct Vector3 {
 	Vector3 operator/(const Vector3& other)const {
 		return{ x / other.x,y / other.y, z / other.z };
 	}
+	Vector3 operator*(float scalar)const {
+		return{ x * scalar,y * scalar, z * scalar };
+	}
 	bool operator==(const Vector3& other)const {
 		if (x == other.x && y == other.y && z == other.z) {
 			return true;
@@ -30,6 +33,20 @@ struct Vector3 {
 
 struct Matrix4x4 {
 	float m[4][4];
+
+	Matrix4x4 operator*(const Matrix4x4& other) const {
+		Matrix4x4 result = {};
+		for (int i = 0; i < 4; ++i) {
+			for (int j = 0; j < 4; ++j) {
+				result.m[i][j] = m[i][0] * other.m[0][j] +
+					m[i][1] * other.m[1][j] +
+					m[i][2] * other.m[2][j] +
+					m[i][3] * other.m[3][j];
+			}
+		}
+		return result;
+	}
+
 };
 
 struct Sphere {
