@@ -23,6 +23,16 @@ struct Vector3 {
 	Vector3 operator*(float scalar)const {
 		return{ x * scalar,y * scalar, z * scalar };
 	}
+	Vector3 operator/(float scalar)const {
+		assert(scalar != 0.0f);
+		return{ x / scalar,y / scalar, z / scalar };
+	}
+	Vector3& operator+=(const Vector3& other) {
+		x += other.x;
+		y += other.y;
+		z += other.z;
+		return *this;
+	}
 	bool operator==(const Vector3& other)const {
 		if (x == other.x && y == other.y && z == other.z) {
 			return true;
@@ -96,4 +106,20 @@ public:
 		ret.z = (min.z + max.z) / 2.0f;
 		return ret;
 	}
+};
+
+struct Spring {
+	Vector3 anchor;
+	float naturalLength;
+	float stiffness;
+	float dampingCoefficient;
+};
+
+struct Ball {
+	Vector3 position;
+	Vector3 velocity;
+	Vector3 acceleration;
+	float mass;
+	float radius;
+	unsigned int color;
 };

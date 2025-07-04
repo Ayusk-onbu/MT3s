@@ -16,6 +16,8 @@ const char kWindowTitle[] = "LE2A_10_ハマダ_カズヤ_MT3";
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
+	float deltaTime = 1.0f / 60.0f;
+
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
@@ -26,15 +28,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 	Matrix4x4 viewportMatrix = MakeViewportMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 0.0f);
 
-	Segment segment{
-		.origin = { -0.7f, 0.3f, 0.0f },
-		.diff = { 2.0f, -0.5f, 0.0f }
-	};
-	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
-
-
-	const int kSphereNum = 3;
+	const int kSphereNum = 1;
 	Sphere sphere[kSphereNum] = {};
 	for (int i = 0;i < kSphereNum;++i) {
 		sphere[i].center = Vector3(0.0f, 0.0f, 0.0f);
@@ -42,21 +36,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		sphere[i].color = 0x000000FF;
 	}
 
-	Vector3 a{ 0.2f, 1.0f, 0.0f };
-	Vector3 b{ 2.4f,3.1f,1.2f };
-	Vector3 c = a + b;
-	Vector3 d = a - b;
-	Vector3 e = a * 2.4f;
-	Vector3 rotate{ 0.4f,1.43f,-0.8f };
-	Matrix4x4 rotateXMatrix = MakeRotateXMatrix(rotate.x);
-	Matrix4x4 rotateYMatrix = MakeRotateYMatrix(rotate.y);
-	Matrix4x4 rotateZMatrix = MakeRotateZMatrix(rotate.z);
-	Matrix4x4 rotateMatrix = rotateXMatrix * rotateYMatrix * rotateZMatrix;
-	
 	bool isViewSphere = true;
 	bool isDebugCamera = false;
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
+
+
+	Spring spring{};
+	spring.anchor = { 0.0f, 0.0f, 0.0f };
+	spring.naturalLength = 1.0f;
+	spring.stiffness = 100.0f;
+	spring.dampingCoefficient = 2.0f;
+
+	Ball ball{};
+	ball.position = { 1.2f, 0.0f, 0.0f };
+	ball.mass = 2.0f;
+	ball.radius = 0.05f;
+	ball.color = BLUE;
+
+	sphere[0].center = ball.position;
+
+	Segment segment{
+		.origin = spring.anchor,
+		.diff = { 2.0f, -0.5f, 0.0f }
+	};
+	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+
 
 	//int color = 0x0000FFFF;
 
@@ -77,24 +83,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
+		Vector3 diff = ball.position - spring.anchor;
+		float length = Length(diff);
+		if (length != 0.0f) {
+			Vector3 direction = Normalize(diff);
+			Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
+			Vector3 displacement = (ball.position - restPosition) * length;
+			Vector3 restoringForce = displacement * -spring.stiffness;
+			Vector3 dampingForce = ball.velocity * -spring.dampingCoefficient;
+			Vector3 force = restoringForce + dampingForce;
+			ball.acceleration = force / ball.mass;
+		}
+		ball.velocity += ball.acceleration * deltaTime; // 16msごとに更新
+		ball.position += ball.velocity * deltaTime; // 16msごとに更新
 
+		sphere[0].center = ball.position;
+		segment.diff = ball.position - segment.origin;
+		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
+		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
 		///
 		/// ↑更新処理ここまで
 		///
-
-		ImGui::Begin("Window");
-		ImGui::Text("c:%f, %f, %f", c.x, c.y, c.z);
-		ImGui::Text("d:%f, %f, %f", d.x, d.y, d.z);
-		ImGui::Text("e:%f, %f, %f", e.x, e.y, e.z);
-		ImGui::Text(
-			"matrix:\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n%f, %f, %f, %f\n",
-			rotateMatrix.m[0][0], rotateMatrix.m[0][1], rotateMatrix.m[0][2], rotateMatrix.m[0][3],
-			rotateMatrix.m[1][0], rotateMatrix.m[1][1], rotateMatrix.m[1][2], rotateMatrix.m[1][3],
-			rotateMatrix.m[2][0], rotateMatrix.m[2][1], rotateMatrix.m[2][2], rotateMatrix.m[2][3],
-			rotateMatrix.m[3][0], rotateMatrix.m[3][1], rotateMatrix.m[3][2], rotateMatrix.m[3][3]
-		);
-		ImGui::End();
 
 		///
 		/// ↓描画処理ここから
@@ -102,12 +112,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (isViewSphere) {
 			for (int i = 0;i < kSphereNum;++i) {
 				if (isDebugCamera) {
-					//DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[i].color);
-					//
+					DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, sphere[i].color);
+					
 					//DrawSphere(sphere[i], debugCamera.scale, debugCamera.rotate, debugCamera.translate, color);
 				}
 				else {
-					//DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, sphere[i].color);
+					DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, sphere[i].color);
 					//DrawSphere(sphere[i], scaleCamera, rotateCamera, translateCamera, color);
 				}
 			}
@@ -134,7 +144,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				isDebugCamera = true;
 			}
 		}
-
+		Novice::DrawLine(static_cast<int>(start.x),
+			static_cast<int>(start.y),
+			static_cast<int>(end.x),
+			static_cast<int>(end.y), WHITE);
 #pragma region ImGui
 		ImGui::Begin("Debug");
 
