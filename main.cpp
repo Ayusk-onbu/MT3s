@@ -41,28 +41,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
 
-
-	Spring spring{};
-	spring.anchor = { 0.0f, 0.0f, 0.0f };
-	spring.naturalLength = 1.0f;
-	spring.stiffness = 100.0f;
-	spring.dampingCoefficient = 2.0f;
-
-	Ball ball{};
-	ball.position = { 1.2f, 0.0f, 0.0f };
-	ball.mass = 2.0f;
-	ball.radius = 0.05f;
-	ball.color = BLUE;
-
-	sphere[0].center = ball.position;
+	float radius = 0.8f;
+	sphere[0].center = { radius,0.0f,0.0f };
+	float angle = 0.0f;
+	float angularVelocity = 3.14f;
 
 	Segment segment{
-		.origin = spring.anchor,
+		.origin = {0.0f,0.0f,0.0f},
 		.diff = { 2.0f, -0.5f, 0.0f }
 	};
 	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
 	Vector3 end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
 
+	bool isUCM = false;
 
 	//int color = 0x0000FFFF;
 
@@ -83,28 +74,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		Vector3 diff = ball.position - spring.anchor;
-		float length = Length(diff);
-		if (length != 0.0f) {
-			Vector3 direction = Normalize(diff);
-			Vector3 restPosition = spring.anchor + direction * spring.naturalLength;
-			Vector3 displacement = (ball.position - restPosition) * length;
-			Vector3 restoringForce = displacement * -spring.stiffness;
-			Vector3 dampingForce = ball.velocity * -spring.dampingCoefficient;
-			Vector3 force = restoringForce + dampingForce;
-			ball.acceleration = force / ball.mass;
+		if (isUCM) {
+			UniformCircularMotion(segment.origin, sphere[0].center, angle, angularVelocity,deltaTime);
+			sphere[0].center.x *= radius;
+			sphere[0].center.y *= radius;
+			//angle += angularVelocity * deltaTime;
+			//sphere[0].center.x = UniformCircularMotionSpeed(radius, angularVelocity, angle).x;
+			//sphere[0].center.y = UniformCircularMotionSpeed(radius, angularVelocity, angle).y;
 		}
-		ball.velocity += ball.acceleration * deltaTime; // 16msごとに更新
-		ball.position += ball.velocity * deltaTime; // 16msごとに更新
-
-		sphere[0].center = ball.position;
-		segment.diff = ball.position - segment.origin;
-		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
-
+		segment.diff = sphere[0].center;
 		///
 		/// ↑更新処理ここまで
 		///
+
+		ImGui::Begin("UniformCircleMotion");
+		if (ImGui::Button("Start")) {
+			isUCM = !isUCM;
+		}
+		ImGui::End();
 
 		///
 		/// ↓描画処理ここから

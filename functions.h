@@ -13,3 +13,14 @@ Vector3 Lerp(const Vector3& v1, const Vector3& v2, float t);
 
 /// <summary>/// /// </summary>/// <param name="scale"></param>/// <param name="rotate"></param>/// <param name="translate"></param>/// <param name="world"></param>/// <returns></returns>
 Matrix4x4 MakeHierarchy(Vector3& scale, Vector3& rotate, Vector3& translate, Matrix4x4 world);
+/// <summary> 等速円運動 </summary>
+/// <param name="origin 中心(x, y, z)"></param>
+/// <param name="pos 円の座標(x, y, z)"></param>
+/// <param name="angle 角度(θ)"></param>
+/// <param name="angularVelocity 角速度(ω (θ/s) )"></param>
+/// <param name="deltaTime(s)"></param>
+void UniformCircularMotion(Vector3 origin,Vector3& pos, float& angle, float angularVelocity,float deltaTime = 1.0f / 60.0f);
+
+Vector2 UniformCircularMotionSpeed(float radius, float angularVelocity, float angle);
+
+float UniformCircularMotionAcceleration(float angularVelocity, float radius);

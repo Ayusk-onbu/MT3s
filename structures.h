@@ -5,6 +5,10 @@
 static const int kColumnWidth = 60;
 static const int kRowHeight = 20;
 
+struct Vector2 {
+	float x, y;
+};
+
 struct Vector3 {
 	float x, y, z;
 

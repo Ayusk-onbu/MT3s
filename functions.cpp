@@ -52,3 +52,18 @@ Matrix4x4 MakeHierarchy(Vector3& scale, Vector3& rotate, Vector3& translate, Mat
 	children = Multiply(children, world);
 	return children;
 }
+
+void UniformCircularMotion(Vector3 origin, Vector3& pos, float& angle, float angularVelocity, float deltaTime) {
+	angle += angularVelocity * deltaTime;
+	pos.x = origin.x + std::cos(angle);
+	pos.y = origin.y + std::sin(angle);
+	pos.z = origin.z;
+}
+
+Vector2 UniformCircularMotionSpeed(float radius, float angularVelocity, float angle) {
+	return { -radius * angularVelocity * std::sin(angle),radius * angularVelocity * std::cos(angle) };
+}
+
+float UniformCircularMotionAcceleration(float angularVelocity, float radius) {
+	return -std::powf(angularVelocity, 2.0f) * radius;
+}
