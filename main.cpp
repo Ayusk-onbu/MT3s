@@ -41,13 +41,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
 
-	float radius = 0.8f;
-	sphere[0].center = { radius,0.0f,0.0f };
-	float angle = 0.0f;
-	float angularVelocity = 3.14f;
+	Pendulum pendulum;
+	pendulum = {
+		.anchor = {0.0f,1.0f,0.0f},
+		.length = 0.8f,
+		.angle = 0.7f,
+		.angularVelocity = 0.0f,
+		.angularAcceleration = 0.0f
+	};
 
 	Segment segment{
-		.origin = {0.0f,0.0f,0.0f},
+		.origin = pendulum.anchor,
 		.diff = { 2.0f, -0.5f, 0.0f }
 	};
 	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
@@ -75,9 +79,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		if (isUCM) {
-			UniformCircularMotion(segment.origin, sphere[0].center, angle, angularVelocity,deltaTime);
-			sphere[0].center.x *= radius;
-			sphere[0].center.y *= radius;
+			PendulumMotion(sphere[0].center, pendulum.anchor, pendulum.length, pendulum.angle, pendulum.angularVelocity, pendulum.angularAcceleration, deltaTime);
 			//angle += angularVelocity * deltaTime;
 			//sphere[0].center.x = UniformCircularMotionSpeed(radius, angularVelocity, angle).x;
 			//sphere[0].center.y = UniformCircularMotionSpeed(radius, angularVelocity, angle).y;
@@ -157,8 +159,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		
 
 		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
-		end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
-
+		//end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
+		end = Transform(Transform(segment.diff, viewProjectionMatrix), viewportMatrix);
 
 		// フレームの終了
 		Novice::EndFrame();

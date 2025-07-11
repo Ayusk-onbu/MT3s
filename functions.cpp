@@ -67,3 +67,12 @@ Vector2 UniformCircularMotionSpeed(float radius, float angularVelocity, float an
 float UniformCircularMotionAcceleration(float angularVelocity, float radius) {
 	return -std::powf(angularVelocity, 2.0f) * radius;
 }
+
+void PendulumMotion(Vector3& pos, Vector3& anchor, float& length, float& angle, float& angularVelocity, float& angularAcceleration, float deltaTime) {
+	angularAcceleration = -(9.8f / length) * std::sin(angle);
+	angularVelocity += angularAcceleration * deltaTime;
+	angle += angularVelocity * deltaTime;
+	pos.x = anchor.x + std::sin(angle) * length;
+	pos.y = anchor.y - std::cos(angle) * length;
+	pos.z = anchor.z;
+}
