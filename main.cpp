@@ -41,17 +41,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
 
-	ConicalPendulum conicalPendulum;
-	conicalPendulum = {
-		.anchor = {0.0f,1.0f,0.0f},
-		.length = 0.8f,
-		.halfApexAngle = 0.7f,
-		.angle = 0.0f,
-		.angularVelocity = 0.0f
+	Plane plane;
+	plane = {
+		.normal = Normalize({-0.2f,0.9f,-0.3f }),
+		.distance = 0.0f
 	};
 
+	Ball ball{};
+	ball = {
+		.position = {0.0f,1.2f,0.3f},
+		.acceleration = {0.0f,-9.8f,0.0f},
+		.mass = 2.0f,
+		.radius = 0.05f,
+		.color = WHITE
+	};
+
+	float e = 0.825f;
+
 	Segment segment{
-		.origin = conicalPendulum.anchor,
+		.origin = 0.0f,
 		.diff = { 2.0f, -0.5f, 0.0f }
 	};
 	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
@@ -79,12 +87,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		if (isUCM) {
-			ConicalPendulumMotion(sphere[0].center, conicalPendulum.anchor, conicalPendulum.length, conicalPendulum.halfApexAngle, conicalPendulum.angle, conicalPendulum.angularVelocity,deltaTime);
-			//PendulumMotion(sphere[0].center, pendulum.anchor, pendulum.length, pendulum.angle, pendulum.angularVelocity, pendulum.angularAcceleration, deltaTime);
-			//angle += angularVelocity * deltaTime;
-			//sphere[0].center.x = UniformCircularMotionSpeed(radius, angularVelocity, angle).x;
-			//sphere[0].center.y = UniformCircularMotionSpeed(radius, angularVelocity, angle).y;
+			ball.velocity += ball.acceleration * deltaTime;
+			ball.position += ball.velocity * deltaTime;
+			if (IsPlaneHitPoint(plane, ball.position, ball.radius)) {
+				Vector3 reflected = Reflect(ball.velocity, plane.normal);
+				Vector3 projectToNormal = Project(reflected, plane.normal);
+				Vector3 movingDirection = reflected - projectToNormal;
+				ball.velocity = projectToNormal * e + movingDirection;
+			}
 		}
+		sphere[0].center = ball.position;
+		sphere[0].radius = ball.radius;
 		segment.diff = sphere[0].center;
 		///
 		/// ↑更新処理ここまで
@@ -114,12 +127,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 		if (isDebugCamera) {
 			DrawGrid(debugCamera.scale, debugCamera.rotate, debugCamera.translate);
+			DrawPlane(plane, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 			
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, debugCamera.scale, debugCamera.rotate, debugCamera.translate);
 		}
 		else {
 			DrawGrid(scaleCamera, rotateCamera, translateCamera);
-
+			DrawPlane(plane, scaleCamera, rotateCamera, translateCamera);
 			viewProjectionMatrix = MakeViewProjectionMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f }, scaleCamera, rotateCamera, translateCamera);
 		}
 
@@ -134,10 +148,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				isDebugCamera = true;
 			}
 		}
-		Novice::DrawLine(static_cast<int>(start.x),
+		/*Novice::DrawLine(static_cast<int>(start.x),
 			static_cast<int>(start.y),
 			static_cast<int>(end.x),
-			static_cast<int>(end.y), WHITE);
+			static_cast<int>(end.y), WHITE);*/
 #pragma region ImGui
 		ImGui::Begin("Debug");
 

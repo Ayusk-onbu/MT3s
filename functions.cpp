@@ -86,3 +86,7 @@ void ConicalPendulumMotion(Vector3& pos, Vector3& anchor, float& length, float& 
 	pos.y = anchor.y - height;
 	pos.z = anchor.z - std::sin(angle) * radius;
 }
+
+Vector3 Reflect(const Vector3& input, const Vector3& normal) {
+	return input - Project(input, normal) * 2.0f;
+}
