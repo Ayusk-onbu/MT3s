@@ -26,3 +26,5 @@ Vector2 UniformCircularMotionSpeed(float radius, float angularVelocity, float an
 float UniformCircularMotionAcceleration(float angularVelocity, float radius);
 
 void PendulumMotion(Vector3& pos,Vector3& anchor, float& length, float& angle, float& angularVelocity, float& angularAcceleration,float deltaTime = 1.0f / 60.0f);
+
+void ConicalPendulumMotion(Vector3& pos, Vector3& anchor, float& length, float& halfApexAngle, float& angle, float& angularVelocity, float deltaTime = 1.0f / 60.0f);

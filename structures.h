@@ -135,3 +135,11 @@ struct Pendulum {
 	float angularVelocity;
 	float angularAcceleration;
 };
+
+struct ConicalPendulum {
+	Vector3 anchor;
+	float length;
+	float halfApexAngle;
+	float angle;
+	float angularVelocity;
+};

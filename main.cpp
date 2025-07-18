@@ -41,17 +41,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int preCameraPosX = 0;
 	int preCameraPosY = 0;
 
-	Pendulum pendulum;
-	pendulum = {
+	ConicalPendulum conicalPendulum;
+	conicalPendulum = {
 		.anchor = {0.0f,1.0f,0.0f},
 		.length = 0.8f,
-		.angle = 0.7f,
-		.angularVelocity = 0.0f,
-		.angularAcceleration = 0.0f
+		.halfApexAngle = 0.7f,
+		.angle = 0.0f,
+		.angularVelocity = 0.0f
 	};
 
 	Segment segment{
-		.origin = pendulum.anchor,
+		.origin = conicalPendulum.anchor,
 		.diff = { 2.0f, -0.5f, 0.0f }
 	};
 	Vector3 start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
@@ -79,7 +79,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		if (isUCM) {
-			PendulumMotion(sphere[0].center, pendulum.anchor, pendulum.length, pendulum.angle, pendulum.angularVelocity, pendulum.angularAcceleration, deltaTime);
+			ConicalPendulumMotion(sphere[0].center, conicalPendulum.anchor, conicalPendulum.length, conicalPendulum.halfApexAngle, conicalPendulum.angle, conicalPendulum.angularVelocity,deltaTime);
+			//PendulumMotion(sphere[0].center, pendulum.anchor, pendulum.length, pendulum.angle, pendulum.angularVelocity, pendulum.angularAcceleration, deltaTime);
 			//angle += angularVelocity * deltaTime;
 			//sphere[0].center.x = UniformCircularMotionSpeed(radius, angularVelocity, angle).x;
 			//sphere[0].center.y = UniformCircularMotionSpeed(radius, angularVelocity, angle).y;

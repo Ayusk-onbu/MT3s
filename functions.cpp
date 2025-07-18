@@ -76,3 +76,13 @@ void PendulumMotion(Vector3& pos, Vector3& anchor, float& length, float& angle, 
 	pos.y = anchor.y - std::cos(angle) * length;
 	pos.z = anchor.z;
 }
+
+void ConicalPendulumMotion(Vector3& pos, Vector3& anchor, float& length, float& halfApexAngle, float& angle, float& angularVelocity, float deltaTime){
+	angularVelocity = std::sqrt(9.8f / (length * std::cos(halfApexAngle)));
+	angle += angularVelocity * deltaTime;
+	float radius = std::sin(halfApexAngle) * length;
+	float height = std::cos(halfApexAngle) * length;
+	pos.x = anchor.x + std::cos(angle) * radius;
+	pos.y = anchor.y - height;
+	pos.z = anchor.z - std::sin(angle) * radius;
+}
