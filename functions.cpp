@@ -1,6 +1,7 @@
 #include "functions.h"
 #include "vector3Calculation.h"
 #include <algorithm>
+#include <cmath>
 #include "matrix4x4Calculation.h"
 
 float cot(float theta) {
@@ -103,24 +104,66 @@ uint32_t Permutation(const uint32_t& n, const uint32_t& k) {
 }
 
 Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle) {
-	float c = std::cos(angle);
-	float s = std::sin(angle);
-	float one_c = 1.0f - c;
-	float nx = axis.x, ny = axis.y, nz = axis.z;
+	float cosTheta = std::cos(angle);
+	float sinTheta = std::sin(angle);
+	float one_c = 1.0f - cosTheta;
+	Vector3 n = Normalize(axis);
 
 	Matrix4x4 R{};
 
-	R.m[0][0] = c + one_c * nx * nx;
-	R.m[0][1] = one_c * nx * ny + s * nz;
-	R.m[0][2] = one_c * nx * nz - s * ny;
+	R.m[0][0] = cosTheta + one_c * n.x * n.x;
+	R.m[0][1] = one_c * n.x * n.y + sinTheta * n.z;
+	R.m[0][2] = one_c * n.x * n.z - sinTheta * n.y;
 
-	R.m[1][0] = one_c * ny * nx - s * nz;
-	R.m[1][1] = c + one_c * ny * ny;
-	R.m[1][2] = one_c * ny * nz + s * nx;
+	R.m[1][0] = one_c * n.y * n.x - sinTheta * n.z;
+	R.m[1][1] = cosTheta + one_c * n.y * n.y;
+	R.m[1][2] = one_c * n.y * n.z + sinTheta * n.x;
 
-	R.m[2][0] = one_c * nz * nx + s * ny;
-	R.m[2][1] = one_c * nz * ny - s * nx;
-	R.m[2][2] = c + one_c * nz * nz;
+	R.m[2][0] = one_c * n.z * n.x + sinTheta * n.y;
+	R.m[2][1] = one_c * n.z * n.y - sinTheta * n.x;
+	R.m[2][2] = cosTheta + one_c * n.z * n.z;
+
+	R.m[3][3] = 1.0f;
+
+	return R;
+}
+
+Matrix4x4 DirectionToDirectional(const Vector3& from, const Vector3& to) {
+	float cosTheta = DotProduct(Normalize(from), Normalize(to));
+	float sinTheta = Length(CrossProduct(Normalize(from), Normalize(to)));
+	float one_c = 1.0f - cosTheta;
+	Vector3 n{};
+
+	// 回転が真逆の場合
+	if (cosTheta < -0.999f) {
+		// どちらも0ではないなら
+		if (from.x != 0.0f || from.y != 0.0f) {
+			n = Normalize({from.y,-from.x,0.0f});
+		}
+		else if (from.x != 0.0f || from.z != 0.0f) {
+			n = Normalize({ from.z,0.0f,-from.x });
+		}
+	}
+	else if (cosTheta > 0.0f) {
+		// 二つのベクトルから軸を作り出す
+		n = Normalize(CrossProduct(Normalize(from), Normalize(to)));
+	}
+
+	Matrix4x4 R{};
+
+	R.m[0][0] = cosTheta + one_c * n.x * n.x;
+	R.m[0][1] = one_c * n.x * n.y + sinTheta * n.z;
+	R.m[0][2] = one_c * n.x * n.z - sinTheta * n.y;
+
+	R.m[1][0] = one_c * n.y * n.x - sinTheta * n.z;
+	R.m[1][1] = cosTheta + one_c * n.y * n.y;
+	R.m[1][2] = one_c * n.y * n.z + sinTheta * n.x;
+
+	R.m[2][0] = one_c * n.z * n.x + sinTheta * n.y;
+	R.m[2][1] = one_c * n.z * n.y - sinTheta * n.x;
+	R.m[2][2] = cosTheta + one_c * n.z * n.z;
+
+	R.m[3][3] = 1.0f;
 
 	return R;
 }

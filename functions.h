@@ -39,3 +39,8 @@ uint32_t Permutation(const uint32_t& n, const uint32_t& k);
 /// <param name="axis : 回転軸の向き"></param>
 /// <param name="angle : どの位回転させるか"></param>
 Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle);
+
+/// <summary> 今向いている方向から向きたい方向に向かせる </summary>
+/// <param name="from 今向いている方向"></param>
+/// <param name="to 向かせたい方向"></param>
+Matrix4x4 DirectionToDirectional(const Vector3& from, const Vector3& to);

@@ -67,10 +67,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	bool isUCM = false;
 
+	Vector3 from0 = Normalize({ 1.0f,0.7f,0.5f });
+	Vector3 to0 = {-from0.x,-from0.y,-from0.z};
+	Vector3 from1 = Normalize({ -0.6f,0.9f,0.2f });
+	Vector3 to1 = Normalize({ 0.4f,0.7f,-0.5f });
+	Matrix4x4 rotateMatrix0 = DirectionToDirectional(Normalize({ 1.0f,0.0f,0.0f }), Normalize({ -1.0f, 0.0f, 0.0f }));
+	Matrix4x4 rotateMatrix1 = DirectionToDirectional(from0, to0);
+	Matrix4x4 rotateMatrix2 = DirectionToDirectional(from1, to1);
 
-	Vector3 axis = Normalize({ 1.0f,1.0f,1.0f });
-	float angle = 0.44f;
-	Matrix4x4 rotateMatrix = MakeRotateAxisAngle(axis, angle);
 
 	//int color = 0x0000FFFF;
 
@@ -153,7 +157,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				isDebugCamera = true;
 			}
 		}
-		MatrixScreenPrintf(0, 0, rotateMatrix, "rotateMatrix");	
 		/*Novice::DrawLine(static_cast<int>(start.x),
 			static_cast<int>(start.y),
 			static_cast<int>(end.x),
@@ -178,6 +181,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↑描画処理ここまで
 		///
 		
+		MatrixScreenPrintf(0, 0, rotateMatrix0, "rotateMatrix0");
+		MatrixScreenPrintf(0, 150, rotateMatrix1, "rotateMatrix1");
+		MatrixScreenPrintf(0, 300, rotateMatrix2, "rotateMatrix2");
 
 		start = Transform(Transform(segment.origin, viewProjectionMatrix), viewportMatrix);
 		//end = Transform(Transform(Add(segment.origin, segment.diff), viewProjectionMatrix), viewportMatrix);
