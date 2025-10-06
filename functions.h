@@ -30,3 +30,12 @@ void PendulumMotion(Vector3& pos,Vector3& anchor, float& length, float& angle, f
 void ConicalPendulumMotion(Vector3& pos, Vector3& anchor, float& length, float& halfApexAngle, float& angle, float& angularVelocity, float deltaTime = 1.0f / 60.0f);
 
 Vector3 Reflect(const Vector3& input,const Vector3& normal);
+
+uint32_t Factorial(const uint32_t& num);
+
+uint32_t Permutation(const uint32_t& n, const uint32_t& k);
+
+/// <summary> ロドリゲスの回転 </summary>
+/// <param name="axis : 回転軸の向き"></param>
+/// <param name="angle : どの位回転させるか"></param>
+Matrix4x4 MakeRotateAxisAngle(const Vector3& axis, float angle);

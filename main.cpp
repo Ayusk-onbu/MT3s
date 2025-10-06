@@ -67,6 +67,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	bool isUCM = false;
 
+
+	Vector3 axis = Normalize({ 1.0f,1.0f,1.0f });
+	float angle = 0.44f;
+	Matrix4x4 rotateMatrix = MakeRotateAxisAngle(axis, angle);
+
 	//int color = 0x0000FFFF;
 
 	// キー入力結果を受け取る箱
@@ -148,6 +153,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				isDebugCamera = true;
 			}
 		}
+		MatrixScreenPrintf(0, 0, rotateMatrix, "rotateMatrix");	
 		/*Novice::DrawLine(static_cast<int>(start.x),
 			static_cast<int>(start.y),
 			static_cast<int>(end.x),
