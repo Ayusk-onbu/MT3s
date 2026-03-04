@@ -10,421 +10,223 @@
 #include "Bezier.h"
 #include "debugView.h"
 #include "functions.h"
+#include <array>
 
 const char kWindowTitle[] = "LE2A_10_ハマダ_カズヤ_MT3";
-
-struct SupportPoint {
-	Vector2 v;// 差分ベクトル(ShapeB - ShapeA)
-	Vector2 supA;// 各形状のサポートポイント(後で衝突点計算に使う場合)
-	Vector2 supB;
+// WinterのGJKのコード
+struct Collider {
+	virtual Vector3 FindFurthestPoint(Vector3 direction) const = 0;
 };
+struct MeshCollider : Collider
+{
+public:
+	std::vector<Vector3> m_vertices;
 
-struct Contact {
-	Vector2 direction;
-	float depth;
-};
+public:
+	Vector3 FindFurthestPoint(Vector3 direction) const override
+	{
+		Vector3  maxPoint;
+		float maxDistance = -FLT_MAX;
 
-Vector2 support(std::vector<Vector2>vertices,const Vector2& direction) {
-	// 内積が最大の点を探す
-	// 保存する変数
-	float maxDot = -FLT_MAX;// 最小値からスタート
-	Vector2 supportPoint = vertices[0];
-	// 全頂点を調べる
-	for (const Vector2& vertex : vertices) {
-		float dot = vertex.x * direction.x + vertex.y * direction.y;
-		if (dot > maxDot) {
-			maxDot = dot;
-			supportPoint = vertex;
-		}
-	}
-	return supportPoint;
-}
-
-float Cross2d(const Vector2& v1, const Vector2& v2) {
-	return v1.x * v2.y - v1.y * v2.x;
-}
-
-float Dot2d(const Vector2& v1, const Vector2& v2) {
-	return v1.x * v2.x + v1.y * v2.y;
-}
-
-SupportPoint getSupport(std::vector<Vector2>shapeA, std::vector<Vector2>shapeB, const Vector2& direction) {
-	SupportPoint p = {};
-	p.supA = support(shapeA, direction);
-	p.supB = support(shapeB, { -direction.x,-direction.y });
-	p.v = { p.supA.x - p.supB.x, p.supA.y - p.supB.y };
-	return p;
-}
-
-Vector2 getPerpendicularToOrigin(Vector2 edge, Vector2 toOrigin) {
-	// 垂直なベクトルを作成
-	Vector2 perp = { -edge.y, edge.x };
-
-	// 原点方向を向いているかを内積で確認
-	float dot = perp.x * toOrigin.x + perp.y * toOrigin.y;
-
-	if (dot < 0) {
-		// 反転
-		perp.x = -perp.x;
-		perp.y = -perp.y;
-	}
-
-	return perp;
-}
-
-Vector2 GetOriginProjection(const Vector2& v1, const Vector2& v2) {
-	float a = v1.y - v2.y;
-	float b = v2.x - v1.x;
-	float c = v1.x * v2.y - v2.x * v1.y;
-
-	// デノミネーター(分母)
-	float denom = a * a + b * b;
-	// 原点からの最短点を求める
-	Vector2 projection = { -a * c / denom, -b * c / denom };
-	return projection;
-}
-
-float GetDistanceToOrigin(const Vector2& point) {
-	return sqrtf(point.x * point.x + point.y * point.y);
-}
-
-Vector2 Normalize(const Vector2& v) {
-	float length = sqrtf(v.x * v.x + v.y * v.y);
-	if (length > 0) {
-		return { v.x / length, v.y / length };
-	}
-	return { 0.0f, 0.0f }; // 長さがゼロの場合はゼロベクトルを返す
-}
-
-bool UpdateSimplex(std::vector<SupportPoint>& simplex, Vector2& direction) {
-	if (simplex.size() == 2) {
-		// 直線のケース
-		SupportPoint p = simplex[0];
-		SupportPoint r = simplex[1];
-		//// 線分PRの作成
-		//Vector2 pr = { r.v.x - p.v.x, r.v.y - p.v.y };
-		//Vector2 rO = { -r.v.x, -r.v.y };
-
-		//// PRの垂線で原点方向を向くものを次の方向に設定
-		//direction = getPerpendicularToOrigin(pr, rO);
-		direction = GetOriginProjection(p.v, r.v);
-		direction.x = -direction.x;
-		direction.y = -direction.y;
-		return false;
-	}
-	else {
-
-		// 三角形の場合
-		SupportPoint a = simplex[0];
-		SupportPoint b = simplex[1];
-		SupportPoint c = simplex[2];
-
-		Vector2 ab = { b.v.x - a.v.x, b.v.y - a.v.y };
-		Vector2 bc = { c.v.x - b.v.x, c.v.y - b.v.y };
-		Vector2 ca = { a.v.x - c.v.x, a.v.y - c.v.y };
-
-		Vector2 ao = { -a.v.x,-a.v.y };
-		Vector2 bo = { -b.v.x,-b.v.y };
-		Vector2 co = { -c.v.x,-c.v.y };
-
-		float crossABAO = Cross2d(ab, ao);
-		float crossBCBO = Cross2d(bc, bo);
-		if (crossABAO * crossBCBO < 0) {
-			// 符号が違うのでFalse
-			// 最初の頂点を削除
-			simplex.erase(simplex.begin());
-			direction = GetOriginProjection(b.v, c.v);
-			direction.x = -direction.x;
-			direction.y = -direction.y;
-			return false;
-		}
-		float crossCACO = Cross2d(ca, co);
-		if (crossBCBO * crossCACO < 0) {
-			// 符号が違うのでFalse
-			// 最初の頂点を削除
-			simplex.erase(simplex.begin());
-			direction = GetOriginProjection(b.v, c.v);
-			direction.x = -direction.x;
-			direction.y = -direction.y;
-			return false;
-		}
-		// ここまできたら原点は含まれているのでOK
-		return true;
-	}
-}
-
-Contact EPA(std::vector<Vector2>shapeA, std::vector<Vector2>shapeB, std::vector<SupportPoint>& simplex) {
-	const int MAX_ITERATIONS = 30;// 無限ループ防止用
-	const float TOLERANCE = 0.0001f;// 許容範囲
-
-	Contact contact = {};
-
-	for (int iter = 0; iter < MAX_ITERATIONS; ++iter) {
-		float minDepth = FLT_MAX;
-		Vector2 minDirection = { 0.0f,0.0f };
-		int insertIndex = 0;
-
-		int numPoints = (int)simplex.size();
-
-		// 全ての辺に対して原点からの距離を求める
-		for (int i = 0; i < numPoints;++i) {
-			int j = (i + 1) % numPoints;// 次の点のインデックス
-			SupportPoint p1 = simplex[i];
-			SupportPoint p2 = simplex[j];
-
-			// [ 点を求める ]
-			Vector2 closestPoint = GetOriginProjection(p1.v, p2.v);
-			// [ 距離を求める ]
-			float depth = GetDistanceToOrigin(closestPoint);
-
-			// [ 一番近い距離を更新 ]
-			if (depth < minDepth) {
-				minDepth = depth;
-				minDirection = closestPoint; // 原点から最も近い点へのベクトル
-				insertIndex = j;             // 後で頂点を挿入する位置
+		for (Vector3 vertex : m_vertices) {
+			float distance = Dot(vertex, direction);
+			if (distance > maxDistance) {
+				maxDistance = distance;
+				maxPoint = vertex;
 			}
 		}
 
-		// 押し出し方向のベクトルを正規化（長さ1にする）
-		// ※ ユーザー環境の正規化関数（Normalize等）を使用してください
-		Vector2 normal = Normalize(minDirection);
-
-		// 2. 求めたベクトルからサポートポイントを求める
-		SupportPoint d = getSupport(shapeA, shapeB, normal);
-
-		// 新しいサポートポイントが、原点から法線方向にどれだけ離れているか（内積）
-		float newDepth = Dot2d(d.v, normal);
-
-		// 3. 終了判定（似たような値が出たか）
-		if (newDepth - minDepth < TOLERANCE) {
-			// 境界に到達したと判定して結果を返す
-			contact.depth = newDepth; // または minDepth
-			contact.direction = normal;
-			return contact;
-		}
-
-		// 4. 境界に達していなければ、求めたサポートポイントを辺の間に挿入して多角形を拡張 (Expand) する
-		simplex.insert(simplex.begin() + insertIndex, d);
-
-	}
-	// 計算の結果を構造体にいれ、返す
-	return contact;
-}
-
-bool collision(std::vector<Vector2> shapeA, std::vector<Vector2>shapeB, std::vector<SupportPoint>& simplex) {
-	// 初期方向
-	Vector2 direction = { 1.0f,0.0f };
-	// 最初のサポートポイント
-	SupportPoint p = getSupport(shapeA, shapeB, direction);
-
-	// 単体(Simplex)を管理
-	simplex.push_back(p);// 登録
-	// 次の方向の取得
-	direction = { -p.v.x,-p.v.y };
-	int index = 0;// ループ制御変数
-	while (index < 30) {
-		SupportPoint r = getSupport(shapeA, shapeB, direction);
-
-		// 新しい点が原点を超えていないなら衝突しない
-		if ((r.v.x * direction.x + r.v.y * direction.y) < 0) {
-			return false;
-		}
-
-		simplex.push_back(r);
-
-		if (UpdateSimplex(simplex, direction)) {
-			return true;
-		}
-		index++;
-	}
-	return false;
-}
-
-// --- ここから三次元のコード ---
-
-struct Matrix3x3 {
-	float m[3][3];
-
-	// ベクトルとの積
-	Vector3 multiply(const Vector3& v) const {
-		return {
-			m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z,
-			m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z,
-			m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z
-		};
+		return maxPoint;
 	}
 };
-
-// 3x3行列の逆行列を求める関数
-Matrix3x3 Inverse(const Matrix3x3& M) {
-	float det = M.m[0][0] * (M.m[1][1] * M.m[2][2] - M.m[1][2] * M.m[2][1]) -
-		M.m[0][1] * (M.m[1][0] * M.m[2][2] - M.m[1][2] * M.m[2][0]) +
-		M.m[0][2] * (M.m[1][0] * M.m[2][1] - M.m[1][1] * M.m[2][0]);
-
-	float invDet = 1.0f / det;
-	Matrix3x3 res;
-	res.m[0][0] = (M.m[1][1] * M.m[2][2] - M.m[1][2] * M.m[2][1]) * invDet;
-	res.m[0][1] = (M.m[0][2] * M.m[2][1] - M.m[0][1] * M.m[2][2]) * invDet;
-	res.m[0][2] = (M.m[0][1] * M.m[1][2] - M.m[0][2] * M.m[1][1]) * invDet;
-	res.m[1][0] = (M.m[1][2] * M.m[2][0] - M.m[1][0] * M.m[2][2]) * invDet;
-	res.m[1][1] = (M.m[0][0] * M.m[2][2] - M.m[0][2] * M.m[2][0]) * invDet;
-	res.m[1][2] = (M.m[1][0] * M.m[0][2] - M.m[0][0] * M.m[1][2]) * invDet;
-	res.m[2][0] = (M.m[1][0] * M.m[2][1] - M.m[1][1] * M.m[2][0]) * invDet;
-	res.m[2][1] = (M.m[2][0] * M.m[0][1] - M.m[0][0] * M.m[2][1]) * invDet;
-	res.m[2][2] = (M.m[0][0] * M.m[1][1] - M.m[1][0] * M.m[0][1]) * invDet;
-	return res;
+Vector3 Support(const Collider& colliderA, const Collider& colliderB, Vector3 direction)
+{
+	return colliderA.FindFurthestPoint(direction)
+		- colliderB.FindFurthestPoint(-direction);
 }
+struct Simplex {
+private:
+	std::array<Vector3, 4> m_points;
+	int m_size;
 
-bool PointInsideTetrahedron(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 p) {
-	Vector3 v1 = b - a;
-	Vector3 v2 = c - a;
-	Vector3 v3 = d - a;
+public:
+	Simplex()
+		: m_size(0)
+	{
+	}
 
-	// 行列を作成 (各列に基底ベクトルを配置)
-	Matrix3x3 mat = { {
-		{v1.x, v2.x, v3.x},
-		{v1.y, v2.y, v3.y},
-		{v1.z, v2.z, v3.z}
-	} };
+	Simplex& operator=(std::initializer_list<Vector3> list)
+	{
+		m_size = 0;
 
-	Matrix3x3 invMat = Inverse(mat);
+		for (Vector3 point : list)
+			m_points[m_size++] = point;
 
-	// 点 P を A 基準の座標系に変換
-	Vector3 newP = invMat.multiply(p - a);
+		return *this;
+	}
 
-	// 判定条件
-	return (newP.x >= 0 && newP.y >= 0 && newP.z >= 0 && (newP.x + newP.y + newP.z) <= 1.0f);
-}
+	void push_front(Vector3 point)
+	{
+		m_points = { point, m_points[0], m_points[1], m_points[2] };
+		m_size = (std::min)(m_size + 1, 4);
+	}
 
-struct SupportPoint3D {
-	Vector3 v;// 差分ベクトル(ShapeB - ShapeA)
-	Vector3 supA;// 各形状のサポートポイント(後で衝突点計算に使う場合)
-	Vector3 supB;
+	Vector3& operator[](int i) { return m_points[i]; }
+	size_t size() const { return m_size; }
+
+	auto begin() const { return m_points.begin(); }
+	auto end() const { return m_points.end() - (4 - m_size); }
 };
 
-Vector3 support(std::vector<Vector3>vertices, const Vector3& direction) {
-	// 内積が最大の点を探す
-	// 保存する変数
-	float maxDot = -FLT_MAX;// 最小値からスタート
-	Vector3 supportPoint = vertices[0];
-	// 全頂点を調べる
-	for (const Vector3& vertex : vertices) {
-		float dot = vertex.x * direction.x + vertex.y * direction.y + vertex.z * direction.z;
-		if (dot > maxDot) {
-			maxDot = dot;
-			supportPoint = vertex;
-		}
-	}
-	return supportPoint;
+bool SameDirection(const Vector3& direction, const Vector3& ao)
+{
+	return Dot(direction, ao) > 0;
 }
 
-SupportPoint3D GetSupport3D(std::vector<Vector3>shapeA, std::vector<Vector3>shapeB, const Vector3& direction) {
-	SupportPoint3D p = {};
-	p.supA = support(shapeA, direction);
-	p.supB = support(shapeB, { -direction.x,-direction.y,-direction.z });
-	p.v = { p.supA.x - p.supB.x, p.supA.y - p.supB.y, p.supA.z - p.supB.z };
-	return p;
-}
+bool Line(Simplex& points, Vector3& direction)
+{
+	Vector3 a = points[0];
+	Vector3 b = points[1];
 
-Vector3 GetOriginProjection3D(const Vector3& v1, const Vector3& v2) {
-	// 直線の方向ベクトル d を求める
-	Vector3 d = { v2.x - v1.x, v2.y - v1.y, v2.z - v1.z };
+	Vector3 ab = b - a;
+	Vector3 ao = -a;
 
-	// 方向ベクトルの長さの2乗（分母）を計算
-	float denom = d.x * d.x + d.y * d.y + d.z * d.z;
-
-	// ゼロ除算チェック（v1 と v2 が同じ点の場合）
-	if (denom < 1e-6f) return v1;
-
-	// パラメータ t を求める
-	float t = -(v1.x * d.x + v1.y * d.y + v1.z * d.z) / denom;
-
-	// 直線の式 P = v1 + t * d に代入して座標を出す
-	Vector3 projection = {
-		v1.x + t * d.x,
-		v1.y + t * d.y,
-		v1.z + t * d.z
-	};
-
-	return projection;
-}
-
-bool UpdateSimplex3D(std::vector<SupportPoint3D>& simplex, Vector3& direction) {
-	if (simplex.size() == 2) {
-		// 直線の2点
-		SupportPoint3D a = simplex[0];
-		SupportPoint3D b = simplex[0];
-
-		// ABの垂線で原点方向を向くものを次の方向に設定
-		direction = GetOriginProjection3D(a.v, b.v);
-		direction.x = -direction.x;
-		direction.y = -direction.y;
-		direction.z = -direction.z;
-		return false;
+	if (SameDirection(ab, ao)) {
+		direction = CrossProduct(CrossProduct(ab, ao), ab);
 	}
-	else if (simplex.size() == 3) {
-		// 三角形の三点
-		SupportPoint3D a = simplex[0];
-		SupportPoint3D b = simplex[1];
-		SupportPoint3D c = simplex[2];
 
-		direction = GetOriginProjection3D(b.v, c.v);
-		direction.x = -direction.x;
-		direction.y = -direction.y;
-		direction.z = -direction.z;
-		return false;
-	}
-	else if (simplex.size() == 4) {
-		// 四面体の四点
-		SupportPoint3D a = simplex[0];
-		SupportPoint3D b = simplex[1];
-		SupportPoint3D c = simplex[2];
-		SupportPoint3D d = simplex[3];
-
-		if (PointInsideTetrahedron(a.v, b.v, c.v, d.v, { 0.0f,0.0f,0.0f })) {
-			return true;
-		}
-		
-		simplex.erase(simplex.begin());
-		direction = GetOriginProjection3D(c.v, d.v);
-		direction.x = -direction.x;
-		direction.y = -direction.y;
-		direction.z = -direction.z;
-		return false;
-	}
 	else {
-		return false;
+		points = { a };
+		direction = ao;
 	}
-}
 
-bool Collision3D(std::vector<Vector3>shapeA, std::vector<Vector3>shapeB, std::vector<SupportPoint3D>& simplex) {
-	// 初期方向の設定
-	Vector3 direction = { 1.0f,0.0f,0.0f };
-
-	// 最初のサポートポイントを取得
-	SupportPoint3D p = GetSupport3D(shapeA, shapeB, direction);
-	// 単体の管理
-	simplex.push_back(p);
-	// 次の方向の取得
-	direction = { -p.v.x,-p.v.y,-p.v.z };
-	int index = 0;// ループ制御変数
-	while (index < 30) {
-		SupportPoint3D r = GetSupport3D(shapeA, shapeB, direction);
-		// 新しい点が原点を超えていないなら衝突しない
-		if ((r.v.x * direction.x + r.v.y * direction.y + r.v.z * direction.z) < 0) {
-			return false;
-		}
-		simplex.push_back(r);
-		if (UpdateSimplex3D(simplex, direction)) {
-			return true;
-		}
-		index++;
-	}
 	return false;
 }
 
-// WinterのGJKのコード
+bool Triangle(Simplex& points, Vector3& direction)
+{
+	Vector3 a = points[0];
+	Vector3 b = points[1];
+	Vector3 c = points[2];
 
+	Vector3 ab = b - a;
+	Vector3 ac = c - a;
+	Vector3 ao = -a;
+
+	Vector3 abc = CrossProduct(ab, ac);
+
+	if (SameDirection(CrossProduct(abc, ac), ao)) {
+		if (SameDirection(ac, ao)) {
+			points = { a, c };
+			direction = CrossProduct(CrossProduct(ac, ao), ac);
+		}
+
+		else {
+			return Line(points = { a, b }, direction);
+		}
+	}
+
+	else {
+		if (SameDirection(CrossProduct(ab, abc), ao)) {
+			return Line(points = { a, b }, direction);
+		}
+
+		else {
+			if (SameDirection(abc, ao)) {
+				direction = abc;
+			}
+
+			else {
+				points = { a, c, b };
+				direction = -abc;
+			}
+		}
+	}
+
+	return false;
+}
+
+bool Tetrahedron(Simplex& points, Vector3& direction)
+{
+	Vector3 a = points[0];
+	Vector3 b = points[1];
+	Vector3 c = points[2];
+	Vector3 d = points[3];
+
+	Vector3 ab = b - a;
+	Vector3 ac = c - a;
+	Vector3 ad = d - a;
+	Vector3 ao = -a;
+
+	Vector3 abc = CrossProduct(ab, ac);
+	Vector3 acd = CrossProduct(ac, ad);
+	Vector3 adb = CrossProduct(ad, ab);
+
+	if (SameDirection(abc, ao)) {
+		return Triangle(points = { a, b, c }, direction);
+	}
+
+	if (SameDirection(acd, ao)) {
+		return Triangle(points = { a, c, d }, direction);
+	}
+
+	if (SameDirection(adb, ao)) {
+		return Triangle(points = { a, d, b }, direction);
+	}
+
+	return true;
+}
+
+bool NextSimplex(Simplex& points, Vector3& direction)
+{
+	switch (points.size()) {
+	case 2: return Line(points, direction);
+	case 3: return Triangle(points, direction);
+	case 4: return Tetrahedron(points, direction);
+	}
+
+	// never should be here
+	return false;
+}
+
+bool GJK(const Collider& colliderA, const Collider& colliderB)
+{
+	// Get initial support point in any direction
+	Vector3 support = Support(colliderA, colliderB, Vector3(1, 0, 0));
+	// Simplex is an array of points, max count is 4
+	Simplex points;
+	points.push_front(support);
+
+	// New direction is towards the origin
+	Vector3 direction = -support;
+	while (true) {
+		support = Support(colliderA, colliderB, direction);
+
+		if (Dot(support, direction) <= 0) {
+			return false; // no collision
+		}
+
+		points.push_front(support);
+		if (NextSimplex(points, direction)) {
+			return true;
+		}
+	}
+}
+
+// 立方体の頂点 (中心 offset, サイズ size) を生成する関数
+std::vector<Vector3> CreateCube(const Vector3& offset, float size) {
+	float s = size * 0.5f;
+	return {
+		{offset.x - s, offset.y - s, offset.z - s},
+		{offset.x + s, offset.y - s, offset.z - s},
+		{offset.x - s, offset.y + s, offset.z - s},
+		{offset.x + s, offset.y + s, offset.z - s},
+		{offset.x - s, offset.y - s, offset.z + s},
+		{offset.x + s, offset.y - s, offset.z + s},
+		{offset.x - s, offset.y + s, offset.z + s},
+		{offset.x + s, offset.y + s, offset.z + s}
+	};
+}
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -468,6 +270,63 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 quadBackBottomLeft3D = { 2.0f - 2.0f + quadMiddle, 2.0f - 2.0f + quadMiddle, 2.5f };
 	Vector3 quadBackBottomRight3D = { 4.0f - 2.0f + quadMiddle, 2.0f - 2.0f + quadMiddle, 2.5f };
 
+	// cube の位置を保持
+	Vector3 cubeAPos = { 0.0f, 0.0f, 0.0f };
+	Vector3 cubeBPos = { 0.8f, 0.0f, 0.0f };
+
+	// 値 1: 原点にある 1x1x1 の立方体
+	MeshCollider cubeA = {};
+	cubeA.m_vertices = CreateCube(cubeAPos, 1.0f);
+
+	// 値 2: 少し離れた場所にある 1x1x1 の立方体
+	// (0.8, 0, 0) なら重なる、(1.5, 0, 0) なら離れる
+	MeshCollider cubeB = {};
+	cubeB.m_vertices = CreateCube(cubeBPos, 1.0f);
+
+	// 頂点オフセット（ImGui で編集するため）
+	std::array<Vector3, 8> vertexOffsetsA = {};
+	std::array<Vector3, 8> vertexOffsetsB = {};
+	// 初期化（省略可）
+	for (int i = 0; i < 8; ++i) {
+		vertexOffsetsA[i] = { 0.0f, 0.0f, 0.0f };
+		vertexOffsetsB[i] = { 0.0f, 0.0f, 0.0f };
+	}
+
+	
+
+	// 立方体（MeshCollider）を描画する簡易ユーティリティ（ローカルラムダ）
+	// 注意: mesh.m_vertices は本コード内で CreateCube により 8 頂点で構成されることを想定
+	auto DrawMeshCollider = [&](const MeshCollider& mesh, int color) {
+		if (mesh.m_vertices.size() < 8) return;
+		Vector3 screen[8];
+		for (int i = 0; i < 8; ++i) {
+			// world 側は頂点が既にワールド座標にある想定なので identity を渡す
+			screen[i] = RenderingPipelineVer2({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f },
+				scaleCamera, rotateCamera, translateCamera,
+				mesh.m_vertices[i],
+				1280.0f, 720.0f, 0.45f, 0.1f, 100.0f,
+				0.0f, 0.0f, 0.0f, 0.0f);
+		}
+
+		// 前面（0-1-2-3）
+		Novice::DrawLine(static_cast<int>(screen[0].x), static_cast<int>(screen[0].y), static_cast<int>(screen[1].x), static_cast<int>(screen[1].y), color);
+		Novice::DrawLine(static_cast<int>(screen[1].x), static_cast<int>(screen[1].y), static_cast<int>(screen[2].x), static_cast<int>(screen[2].y), color);
+		Novice::DrawLine(static_cast<int>(screen[2].x), static_cast<int>(screen[2].y), static_cast<int>(screen[3].x), static_cast<int>(screen[3].y), color);
+		Novice::DrawLine(static_cast<int>(screen[3].x), static_cast<int>(screen[3].y), static_cast<int>(screen[0].x), static_cast<int>(screen[0].y), color);
+
+		// 背面（4-5-6-7）
+		Novice::DrawLine(static_cast<int>(screen[4].x), static_cast<int>(screen[4].y), static_cast<int>(screen[5].x), static_cast<int>(screen[5].y), color);
+		Novice::DrawLine(static_cast<int>(screen[5].x), static_cast<int>(screen[5].y), static_cast<int>(screen[6].x), static_cast<int>(screen[6].y), color);
+		Novice::DrawLine(static_cast<int>(screen[6].x), static_cast<int>(screen[6].y), static_cast<int>(screen[7].x), static_cast<int>(screen[7].y), color);
+		Novice::DrawLine(static_cast<int>(screen[7].x), static_cast<int>(screen[7].y), static_cast<int>(screen[4].x), static_cast<int>(screen[4].y), color);
+
+		// 接続（0-4,1-5,2-6,3-7）
+		Novice::DrawLine(static_cast<int>(screen[0].x), static_cast<int>(screen[0].y), static_cast<int>(screen[4].x), static_cast<int>(screen[4].y), color);
+		Novice::DrawLine(static_cast<int>(screen[1].x), static_cast<int>(screen[1].y), static_cast<int>(screen[5].x), static_cast<int>(screen[5].y), color);
+		Novice::DrawLine(static_cast<int>(screen[2].x), static_cast<int>(screen[2].y), static_cast<int>(screen[6].x), static_cast<int>(screen[6].y), color);
+		Novice::DrawLine(static_cast<int>(screen[3].x), static_cast<int>(screen[3].y), static_cast<int>(screen[7].x), static_cast<int>(screen[7].y), color);
+	};
+
 	// キー入力結果を受け取る箱
 	char keys[256] = {0};
 	char preKeys[256] = {0};
@@ -484,7 +343,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓更新処理ここから
 		///
-	
+
 		// 移動処理
 		{
 			if (keys[DIK_W]) {
@@ -532,6 +391,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				triangleFrontRight3D.x -= 1.0f;
 			}
 		}
+
+		// --- 追加: 矢印キーで cubeB を動かす ---
+		const float kCubeMoveSpeed = 0.05f; // 1フレームあたりの移動量を調整
+		if (keys[DIK_LEFT])  cubeBPos.x -= kCubeMoveSpeed;
+		if (keys[DIK_RIGHT]) cubeBPos.x += kCubeMoveSpeed;
+		if (keys[DIK_UP])    cubeBPos.z += kCubeMoveSpeed; // 前方に移動
+		if (keys[DIK_DOWN])  cubeBPos.z -= kCubeMoveSpeed; // 後方に移動
+		if (keys[DIK_I])  cubeBPos.y += kCubeMoveSpeed; // 上方に移動
+		if (keys[DIK_K])  cubeBPos.y -= kCubeMoveSpeed; // 上方に移動
+
+
+		// 位置変更があれば頂点を再生成（当たり判定・描画に反映）
+		cubeA.m_vertices = CreateCube(cubeAPos, 1.0f);
+		cubeB.m_vertices = CreateCube(cubeBPos, 1.0f);
+		// --- ここまで追加 ---
+
 		// 当たり判定2D
 		/*std::vector<SupportPoint>simplex;
 		if (collision({triangleTop,triangleLeft,triangleRight}, {quadBottomLeft,quadBottomRight,quadTopLeft,quadTopRight},simplex)) {
@@ -557,15 +432,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}*/
 
 		// 当たり判定3D
-		std::vector<SupportPoint3D>simplex3D;
-		if (Collision3D({ triangleTop3D,triangleBackLeft3D,triangleBackRight3D,triangleFrontLeft3D,triangleFrontRight3D }, { quadBottomLeft3D,quadBottomRight3D,quadTopLeft3D,quadTopRight3D,quadBackBottomLeft3D,quadBackBottomRight3D,quadBackTopLeft3D,quadBackTopRight3D }, simplex3D)) {
+		if (GJK(cubeA,cubeB)) {
 			Novice::DrawBox(100, 100, 300, 300, 0.0f, WHITE, kFillModeWireFrame);
-			ImGui::Begin("Debug");
-			ImGui::DragFloat3("Simplex : 1", &simplex3D[0].v.x);
-			ImGui::DragFloat3("Simplex : 2", &simplex3D[1].v.x);
-			ImGui::DragFloat3("Simplex : 3", &simplex3D[2].v.x);
-			ImGui::DragFloat3("Simplex : 4", &simplex3D[3].v.x);
-			ImGui::End();
+		}
+
+		// base vertices を生成してオフセットを足す
+		{
+			auto baseA = CreateCube(cubeAPos, 1.0f);
+			for (int i = 0; i < 8; ++i) {
+				cubeA.m_vertices[i] = { baseA[i].x + vertexOffsetsA[i].x,
+										baseA[i].y + vertexOffsetsA[i].y,
+										baseA[i].z + vertexOffsetsA[i].z };
+			}
+			auto baseB = CreateCube(cubeBPos, 1.0f);
+			for (int i = 0; i < 8; ++i) {
+				cubeB.m_vertices[i] = { baseB[i].x + vertexOffsetsB[i].x,
+										baseB[i].y + vertexOffsetsB[i].y,
+										baseB[i].z + vertexOffsetsB[i].z };
+			}
 		}
 
 		///
@@ -580,6 +464,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		
 #pragma region ImGui
 		ImGui::Begin("Debug");
+		ImGui::DragFloat3("Camera Scale", &scaleCamera.x);
+		ImGui::DragFloat3("Camera Rotate", &rotateCamera.x,0.01f);
+		ImGui::DragFloat3("Camera Translate", &translateCamera.x);
+
 		ImGui::DragFloat2("TriPosTop", &triangleTop.x);
 		ImGui::DragFloat2("TriPosLeft", &triangleLeft.x);
 		ImGui::DragFloat2("TriPosRight", &triangleRight.x);
@@ -604,12 +492,56 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("quadPosBackBottomRight3D", &quadBackBottomRight3D.x);
 		
 		ImGui::End();
+
+		ImGui::Begin("Mesh Editor");
+
+		// cubeA 頂点編集
+		if (ImGui::CollapsingHeader("Cube A Vertices", ImGuiTreeNodeFlags_DefaultOpen)) {
+			for (int i = 0; i < 8; ++i) {
+				char label[64];
+				snprintf(label, sizeof(label), "A Vertex %d (offset)", i);
+				ImGui::DragFloat3(label, &vertexOffsetsA[i].x, 0.01f, -5.0f, 5.0f);
+			}
+			// リセットボタン
+			if (ImGui::Button("Reset A Offsets")) {
+				for (auto& v : vertexOffsetsA) v = { 0.0f,0.0f,0.0f };
+			}
+		}
+
+		// cubeB 頂点編集
+		if (ImGui::CollapsingHeader("Cube B Vertices", ImGuiTreeNodeFlags_DefaultOpen)) {
+			for (int i = 0; i < 8; ++i) {
+				char label[64];
+				snprintf(label, sizeof(label), "B Vertex %d (offset)", i);
+				ImGui::DragFloat3(label, &vertexOffsetsB[i].x, 0.01f, -5.0f, 5.0f);
+			}
+			if (ImGui::Button("Reset B Offsets")) {
+				for (auto& v : vertexOffsetsB) v = { 0.0f,0.0f,0.0f };
+			}
+		}
+
+		// 頂点を絶対位置で編集したい場合の補助：ベース頂点を表示（読み取り専用）
+		if (ImGui::CollapsingHeader("Base Vertices (read only)")) {
+			auto baseA = CreateCube(cubeAPos, 1.0f);
+			auto baseB = CreateCube(cubeBPos, 1.0f);
+			for (int i = 0; i < 8; ++i) {
+				char labA[64]; snprintf(labA, sizeof(labA), "A base %d", i);
+				ImGui::Text("%s: %.3f, %.3f, %.3f", labA, baseA[i].x, baseA[i].y, baseA[i].z);
+				char labB[64]; snprintf(labB, sizeof(labB), "B base %d", i);
+				ImGui::Text("%s: %.3f, %.3f, %.3f", labB, baseB[i].x, baseB[i].y, baseB[i].z);
+			}
+		}
+
+		ImGui::End();
 #pragma endregion
 
 		
 		Novice::DrawQuad((int)quadBottomLeft.x * 1, (int)quadBottomLeft.y * 1, (int)quadBottomRight.x * 1, (int)quadBottomRight.y * 1, (int)quadTopLeft.x * 1, (int)quadTopLeft.y * 1, (int)quadTopRight.x * 1, (int)quadTopRight.y * 1, 0, 0, 0, 0, 0, 0x0000FF44);
 		Novice::DrawTriangle((int)triangleTop.x * 1, (int)triangleTop.y * 1, (int)triangleLeft.x * 1, (int)triangleLeft.y * 1, (int)triangleRight.x * 1, (int)triangleRight.y * 1, RED, kFillModeWireFrame);
 
+		// 作成した MeshCollider をワイヤーフレームで描画
+		DrawMeshCollider(cubeA, 0x00FF00FF); // 緑
+		DrawMeshCollider(cubeB, 0xFF0000FF); // 赤っぽい青
 
 		///
 		/// ↑描画処理ここまで
