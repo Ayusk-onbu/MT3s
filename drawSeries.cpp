@@ -219,3 +219,78 @@ void DrawAABB(const AABB& a, Vector3 scaleCamera, Vector3 rotateCamera, Vector3 
 	Novice::DrawLine(static_cast<int>(vertices[3].x), static_cast<int>(vertices[3].y),
 		static_cast<int>(vertices[7].x), static_cast<int>(vertices[7].y), color);
 }
+
+void DrawSpecialTriangle3D(const Vector3& top,
+	const Vector3& backLeft, const Vector3& backRight,
+	const Vector3& frontLeft, const Vector3& frontRight,
+	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	int color,
+	Vector3 scale, Vector3 rotate, Vector3 translate,
+	float width, float height, float fovY, float nearClip, float farClip,
+	float left, float topOffset, float minDepth, float maxDepth) {
+
+	// ワールド→スクリーン変換（RenderingPipelineVer2 を使用）
+	Vector3 T = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, top, width, height, fovY, nearClip, farClip, left, topOffset, minDepth, maxDepth);
+	Vector3 BL = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, backLeft, width, height, fovY, nearClip, farClip, left, topOffset, minDepth, maxDepth);
+	Vector3 BR = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, backRight, width, height, fovY, nearClip, farClip, left, topOffset, minDepth, maxDepth);
+	Vector3 FL = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, frontLeft, width, height, fovY, nearClip, farClip, left, topOffset, minDepth, maxDepth);
+	Vector3 FR = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, frontRight, width, height, fovY, nearClip, farClip, left, topOffset, minDepth, maxDepth);
+
+	// 前面の三角形 (T - FL - FR)
+	Novice::DrawLine(static_cast<int>(T.x), static_cast<int>(T.y), static_cast<int>(FL.x), static_cast<int>(FL.y), color);
+	Novice::DrawLine(static_cast<int>(FL.x), static_cast<int>(FL.y), static_cast<int>(FR.x), static_cast<int>(FR.y), color);
+	Novice::DrawLine(static_cast<int>(FR.x), static_cast<int>(FR.y), static_cast<int>(T.x), static_cast<int>(T.y), color);
+
+	// 背面の三角形 (T - BL - BR)
+	Novice::DrawLine(static_cast<int>(T.x), static_cast<int>(T.y), static_cast<int>(BL.x), static_cast<int>(BL.y), color);
+	Novice::DrawLine(static_cast<int>(BL.x), static_cast<int>(BL.y), static_cast<int>(BR.x), static_cast<int>(BR.y), color);
+	Novice::DrawLine(static_cast<int>(BR.x), static_cast<int>(BR.y), static_cast<int>(T.x), static_cast<int>(T.y), color);
+
+	// 前後をつなぐエッジ (FL-BL, FR-BR)
+	Novice::DrawLine(static_cast<int>(FL.x), static_cast<int>(FL.y), static_cast<int>(BL.x), static_cast<int>(BL.y), color);
+	Novice::DrawLine(static_cast<int>(FR.x), static_cast<int>(FR.y), static_cast<int>(BR.x), static_cast<int>(BR.y), color);
+
+	// 追加で底面（四角）を描きたい場合は以下で描画可能（コメント解除）
+	// Novice::DrawLine(static_cast<int>(BL.x), static_cast<int>(BL.y), static_cast<int>(BR.x), static_cast<int>(BR.y), color);
+	// Novice::DrawLine(static_cast<int>(BR.x), static_cast<int>(BR.y), static_cast<int>(FR.x), static_cast<int>(FR.y), color);
+	// Novice::DrawLine(static_cast<int>(FR.x), static_cast<int>(FR.y), static_cast<int>(FL.x), static_cast<int>(FL.y), color);
+	// Novice::DrawLine(static_cast<int>(FL.x), static_cast<int>(FL.y), static_cast<int>(BL.x), static_cast<int>(BL.y), color);
+}
+
+void DrawCustomCuboid(const Vector3& frontTL, const Vector3& frontTR, const Vector3& frontBR, const Vector3& frontBL,
+	const Vector3& backTL, const Vector3& backTR, const Vector3& backBR, const Vector3& backBL,
+	Vector3 scaleCamera, Vector3 rotateCamera, Vector3 translateCamera,
+	int color,
+	Vector3 scale, Vector3 rotate, Vector3 translate,
+	float width, float height, float fovY, float nearClip, float farClip,
+	float left, float top, float minDepth, float maxDepth) {
+
+	// 各頂点をスクリーン座標へ変換
+	Vector3 fTL = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, frontTL, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 fTR = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, frontTR, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 fBR = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, frontBR, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 fBL = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, frontBL, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+
+	Vector3 bTL = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, backTL, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 bTR = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, backTR, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 bBR = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, backBR, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+	Vector3 bBL = RenderingPipelineVer2(scale, rotate, translate, scaleCamera, rotateCamera, translateCamera, backBL, width, height, fovY, nearClip, farClip, left, top, minDepth, maxDepth);
+
+	// 前面
+	Novice::DrawLine(static_cast<int>(fTL.x), static_cast<int>(fTL.y), static_cast<int>(fTR.x), static_cast<int>(fTR.y), color);
+	Novice::DrawLine(static_cast<int>(fTR.x), static_cast<int>(fTR.y), static_cast<int>(fBR.x), static_cast<int>(fBR.y), color);
+	Novice::DrawLine(static_cast<int>(fBR.x), static_cast<int>(fBR.y), static_cast<int>(fBL.x), static_cast<int>(fBL.y), color);
+	Novice::DrawLine(static_cast<int>(fBL.x), static_cast<int>(fBL.y), static_cast<int>(fTL.x), static_cast<int>(fTL.y), color);
+
+	// 背面
+	Novice::DrawLine(static_cast<int>(bTL.x), static_cast<int>(bTL.y), static_cast<int>(bTR.x), static_cast<int>(bTR.y), color);
+	Novice::DrawLine(static_cast<int>(bTR.x), static_cast<int>(bTR.y), static_cast<int>(bBR.x), static_cast<int>(bBR.y), color);
+	Novice::DrawLine(static_cast<int>(bBR.x), static_cast<int>(bBR.y), static_cast<int>(bBL.x), static_cast<int>(bBL.y), color);
+	Novice::DrawLine(static_cast<int>(bBL.x), static_cast<int>(bBL.y), static_cast<int>(bTL.x), static_cast<int>(bTL.y), color);
+
+	// 前後をつなぐエッジ
+	Novice::DrawLine(static_cast<int>(fTL.x), static_cast<int>(fTL.y), static_cast<int>(bTL.x), static_cast<int>(bTL.y), color);
+	Novice::DrawLine(static_cast<int>(fTR.x), static_cast<int>(fTR.y), static_cast<int>(bTR.x), static_cast<int>(bTR.y), color);
+	Novice::DrawLine(static_cast<int>(fBR.x), static_cast<int>(fBR.y), static_cast<int>(bBR.x), static_cast<int>(bBR.y), color);
+	Novice::DrawLine(static_cast<int>(fBL.x), static_cast<int>(fBL.y), static_cast<int>(bBL.x), static_cast<int>(bBL.y), color);
+}

@@ -353,7 +353,7 @@ bool UpdateSimplex3D(std::vector<SupportPoint3D>& simplex, Vector3& direction) {
 	if (simplex.size() == 2) {
 		// 直線の2点
 		SupportPoint3D a = simplex[0];
-		SupportPoint3D b = simplex[0];
+		SupportPoint3D b = simplex[1];
 
 		// ABの垂線で原点方向を向くものを次の方向に設定
 		direction = GetOriginProjection3D(a.v, b.v);
@@ -368,28 +368,77 @@ bool UpdateSimplex3D(std::vector<SupportPoint3D>& simplex, Vector3& direction) {
 		SupportPoint3D b = simplex[1];
 		SupportPoint3D c = simplex[2];
 
-		direction = GetOriginProjection3D(b.v, c.v);
-		direction.x = -direction.x;
-		direction.y = -direction.y;
-		direction.z = -direction.z;
+		Vector3 ab = { b.v.x - a.v.x, b.v.y - a.v.y, b.v.z - a.v.z };
+		Vector3 ac = { c.v.x - a.v.x, c.v.y - a.v.y, c.v.z - a.v.z };
+		direction = CrossProduct(ac, ab);
+
+		if (Dot(direction, -a.v)) {
+			// 面からの方向が原点を向くように修正
+			direction = -direction;
+		}
+
 		return false;
 	}
 	else if (simplex.size() == 4) {
 		// 四面体の四点
-		SupportPoint3D a = simplex[0];
-		SupportPoint3D b = simplex[1];
-		SupportPoint3D c = simplex[2];
-		SupportPoint3D d = simplex[3];
+		SupportPoint3D a = simplex[3];
+		SupportPoint3D b = simplex[2];
+		SupportPoint3D c = simplex[1];
+		SupportPoint3D d = simplex[0];
 
-		if (PointInsideTetrahedron(a.v, b.v, c.v, d.v, { 0.0f,0.0f,0.0f })) {
-			return true;
+		Vector3 v1 = b.v - a.v;
+		Vector3 v2 = c.v - a.v;
+		Vector3 v3 = d.v - a.v;
+
+		// 行列を作成 (各列に基底ベクトルを配置)
+		Matrix3x3 mat = { {
+			{v1.x, v2.x, v3.x},
+			{v1.y, v2.y, v3.y},
+			{v1.z, v2.z, v3.z}
+		} };
+
+		Matrix3x3 invMat = Inverse(mat);
+
+		// 点 P を A 基準の座標系に変換
+		Vector3 newP = invMat.multiply(Vector3{0.0f,0.0f,0.0f} - a.v);
+
+		float u = newP.x; // Bの重み
+		float v = newP.y; // Cの重み
+		float w = newP.z; // Dの重み
+		float alpha = 1.0f - (u + v + w); // Aの重み
+
+		// 判定条件
+		if (u >= 0 && v >= 0 && w >= 0 && alpha >= 0) {
+			return true; // 衝突検出！
 		}
 		
-		simplex.erase(simplex.begin());
-		direction = GetOriginProjection3D(c.v, d.v);
-		direction.x = -direction.x;
-		direction.y = -direction.y;
-		direction.z = -direction.z;
+		// X が頂点Bの重み、Y が頂点Cの重み、Z が頂点Dの重み
+		// 頂点Aの重みは 1 - (X + Y + Z) で求められる
+		// 2. 重みがマイナスの点を除外してシンプレックスを更新
+		// ※ A（最新の点）は必ず残すのがGJKの鉄則
+		if (u < 0) {
+			// Bが不要。面ACDで再判定（実際にはさらに面か辺かの絞り込みが必要）
+			simplex.erase(simplex.begin() + 2); // Bを削除
+		}
+		else if (v < 0) {
+			// Cが不要
+			simplex.erase(simplex.begin() + 1); // Cを削除
+		}
+		else if (w < 0) {
+			// Dが不要
+			simplex.erase(simplex.begin() + 0); // Dを削除
+		}
+
+		// ここから下の判定を変える
+		Vector3 ab = { simplex[1].v.x - simplex[0].v.x, simplex[1].v.y - simplex[0].v.y, simplex[1].v.z - simplex[0].v.z };
+		Vector3 ac = { simplex[2].v.x - simplex[0].v.x, simplex[2].v.y - simplex[0].v.y, simplex[2].v.z - simplex[0].v.z };
+		direction = CrossProduct(ac, ab);
+
+		if (Dot(direction, -simplex[0].v)) {
+			// 面からの方向が原点を向くように修正
+			direction = -direction;
+		}
+
 		return false;
 	}
 	else {
@@ -408,7 +457,7 @@ bool Collision3D(std::vector<Vector3>shapeA, std::vector<Vector3>shapeB, std::ve
 	// 次の方向の取得
 	direction = { -p.v.x,-p.v.y,-p.v.z };
 	int index = 0;// ループ制御変数
-	while (index < 30) {
+	while (index < 50) {
 		SupportPoint3D r = GetSupport3D(shapeA, shapeB, direction);
 		// 新しい点が原点を超えていないなら衝突しない
 		if ((r.v.x * direction.x + r.v.y * direction.y + r.v.z * direction.z) < 0) {
@@ -423,7 +472,7 @@ bool Collision3D(std::vector<Vector3>shapeA, std::vector<Vector3>shapeB, std::ve
 	return false;
 }
 
-// WinterのGJKのコード
+// WinterのGJKのコードはGJKの方に書いた
 
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -452,6 +501,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector2 quadTopRight = { 4.0f - 2.0f + quadMiddle, 4.0f - 2.0f + quadMiddle };
 	Vector2 quadBottomLeft = { 2.0f - 2.0f + quadMiddle, 2.0f - 2.0f + quadMiddle };
 	Vector2 quadBottomRight = { 4.0f - 2.0f + quadMiddle, 2.0f - 2.0f + quadMiddle };
+
+	Vector2 quadTopLeft2 = { 2.0f - 2.0f + quadMiddle, 4.0f - 2.0f + quadMiddle };
+	Vector2 quadTopRight2 = { 4.0f - 2.0f + quadMiddle, 4.0f - 2.0f + quadMiddle };
+	Vector2 quadBottomLeft2 = { 2.0f - 2.0f + quadMiddle, 2.0f - 2.0f + quadMiddle };
+	Vector2 quadBottomRight2 = { 4.0f - 2.0f + quadMiddle, 2.0f - 2.0f + quadMiddle };
 
 	Vector3 triangleTop3D = { 0.5f, 1.0f, 0.5f };
 	Vector3 triangleBackLeft3D = { 0.0f, 0.0f, -0.5f };
@@ -492,44 +546,59 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				triangleRight.y -= 1.0f;
 				triangleTop.y -= 1.0f;
 
-				triangleTop3D.y -= 1.0f;
-				triangleBackLeft3D.y -= 1.0f;
-				triangleBackRight3D.y -= 1.0f;
-				triangleFrontLeft3D.y -= 1.0f;
-				triangleFrontRight3D.y -= 1.0f;
+				triangleTop3D.y -= 0.1f;
+				triangleBackLeft3D.y -= 0.1f;
+				triangleBackRight3D.y -= 0.1f;
+				triangleFrontLeft3D.y -= 0.1f;
+				triangleFrontRight3D.y -= 0.1f;
 			}
 			if (keys[DIK_D]) {
 				triangleLeft.x += 1.0f;
 				triangleRight.x += 1.0f;
 				triangleTop.x += 1.0f;
 
-				triangleTop3D.x += 1.0f;
-				triangleBackLeft3D.x += 1.0f;
-				triangleBackRight3D.x += 1.0f;
-				triangleFrontLeft3D.x += 1.0f;
-				triangleFrontRight3D.x += 1.0f;
+				triangleTop3D.x += 0.1f;
+				triangleBackLeft3D.x += 0.1f;
+				triangleBackRight3D.x += 0.1f;
+				triangleFrontLeft3D.x += 0.1f;
+				triangleFrontRight3D.x += 0.1f;
 			}
 			if (keys[DIK_S]) {
 				triangleLeft.y += 1.0f;
 				triangleRight.y += 1.0f;
 				triangleTop.y += 1.0f;
 
-				triangleTop3D.y += 1.0f;
-				triangleBackLeft3D.y += 1.0f;
-				triangleBackRight3D.y += 1.0f;
-				triangleFrontLeft3D.y += 1.0f;
-				triangleFrontRight3D.y += 1.0f;
+				triangleTop3D.y += 0.1f;
+				triangleBackLeft3D.y += 0.1f;
+				triangleBackRight3D.y += 0.1f;
+				triangleFrontLeft3D.y += 0.1f;
+				triangleFrontRight3D.y += 0.1f;
 			}
 			if (keys[DIK_A]) {
 				triangleLeft.x -= 1.0f;
 				triangleRight.x -= 1.0f;
 				triangleTop.x -= 1.0f;
 
-				triangleTop3D.x -= 1.0f;
-				triangleBackLeft3D.x -= 1.0f;
-				triangleBackRight3D.x -= 1.0f;
-				triangleFrontLeft3D.x -= 1.0f;
-				triangleFrontRight3D.x -= 1.0f;
+				triangleTop3D.x -= 0.1f;
+				triangleBackLeft3D.x -= 0.1f;
+				triangleBackRight3D.x -= 0.1f;
+				triangleFrontLeft3D.x -= 0.1f;
+				triangleFrontRight3D.x -= 0.1f;
+			}
+			if (keys[DIK_K]) {
+				triangleTop3D.z += 0.1f;
+				triangleBackLeft3D.z += 0.1f;
+				triangleBackRight3D.z += 0.1f;
+				triangleFrontLeft3D.z += 0.1f;
+				triangleFrontRight3D.z += 0.1f;
+			}
+
+			if (keys[DIK_I]) {
+				triangleTop3D.z -= 0.1f;
+				triangleBackLeft3D.z -= 0.1f;
+				triangleBackRight3D.z -= 0.1f;
+				triangleFrontLeft3D.z -= 0.1f;
+				triangleFrontRight3D.z -= 0.1f;
 			}
 		}
 		// 当たり判定2D
@@ -553,6 +622,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::DragFloat2("Simplex : 1", &simplex[0].v.x);
 			ImGui::DragFloat2("Simplex : 2", &simplex[1].v.x);
 			ImGui::DragFloat2("Simplex : 3", &simplex[2].v.x);
+			ImGui::End();
+		}
+
+		std::vector<SupportPoint>simplex2;
+		if (collision({ triangleTop,triangleLeft,triangleRight }, { quadBottomLeft2,quadBottomRight2,quadTopLeft2,quadTopRight2 }, simplex2)) {
+			Novice::DrawBox(100, 100, 300, 300, 0.0f, WHITE, kFillModeWireFrame);
+			Contact contact = EPA({ triangleTop,triangleLeft,triangleRight }, { quadBottomLeft2,quadBottomRight2,quadTopLeft2,quadTopRight2 }, simplex2);
+			triangleLeft.x += -contact.direction.x * contact.depth;
+			triangleLeft.y += -contact.direction.y * contact.depth;
+
+			triangleTop.x += -contact.direction.x * contact.depth;
+			triangleTop.y += -contact.direction.y * contact.depth;
+
+			triangleRight.x += -contact.direction.x * contact.depth;
+			triangleRight.y += -contact.direction.y * contact.depth;
+			Novice::DrawLine(int(simplex2[0].v.x * 50.0f), int(simplex2[0].v.y * 50.0f), int(simplex2[1].v.x * 50.0f), int(simplex2[1].v.y * 50.0f), 0xFFFF00FF);
+			Novice::DrawLine(int(simplex2[1].v.x * 50.0f), int(simplex2[1].v.y * 50.0f), int(simplex2[2].v.x * 50.0f), int(simplex2[2].v.y * 50.0f), 0xFFFF00FF);
+			Novice::DrawLine(int(simplex2[0].v.x * 50.0f), int(simplex2[0].v.y * 50.0f), int(simplex2[2].v.x * 50.0f), int(simplex2[2].v.y * 50.0f), 0xFFFF00FF);
+
+			ImGui::Begin("Debug");
+			ImGui::DragFloat2("Simplex2 : 1", &simplex2[0].v.x);
+			ImGui::DragFloat2("Simplex2 : 2", &simplex2[1].v.x);
+			ImGui::DragFloat2("Simplex2 : 3", &simplex2[2].v.x);
 			ImGui::End();
 		}*/
 
@@ -579,7 +671,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		
 #pragma region ImGui
-		ImGui::Begin("Debug");
+		ImGui::Begin("Debug2D");
 		ImGui::DragFloat2("TriPosTop", &triangleTop.x);
 		ImGui::DragFloat2("TriPosLeft", &triangleLeft.x);
 		ImGui::DragFloat2("TriPosRight", &triangleRight.x);
@@ -588,6 +680,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat2("quadPosBottomRight", &quadBottomRight.x);
 		ImGui::DragFloat2("quadPosTopLeft", &quadTopLeft.x);
 		ImGui::DragFloat2("quadPosTopRight", &quadTopRight.x);
+
+		ImGui::DragFloat2("quadPosBottomLeft2", &quadBottomLeft2.x);
+		ImGui::DragFloat2("quadPosBottomRight2", &quadBottomRight2.x);
+		ImGui::DragFloat2("quadPosTopLeft2", &quadTopLeft2.x);
+		ImGui::DragFloat2("quadPosTopRight2", &quadTopRight2.x);
+		
+		ImGui::End();
+
+
+		ImGui::Begin("Debug3D");
+
+		ImGui::DragFloat3("CameraScale", &scaleCamera.x);
+		ImGui::DragFloat3("CameraRotate", &rotateCamera.x,0.01f);
+		ImGui::DragFloat3("CameraTranslate", &translateCamera.x);
 
 		ImGui::DragFloat3("TriPosTop3D", &triangleTop3D.x);
 		ImGui::DragFloat3("TriPosLeft3D", &triangleBackLeft3D.x);
@@ -602,14 +708,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ImGui::DragFloat3("quadPosBackTopRight3D", &quadBackTopRight3D.x);
 		ImGui::DragFloat3("quadPosBackBottomLeft3D", &quadBackBottomLeft3D.x);
 		ImGui::DragFloat3("quadPosBackBottomRight3D", &quadBackBottomRight3D.x);
-		
+
 		ImGui::End();
 #pragma endregion
 
 		
 		Novice::DrawQuad((int)quadBottomLeft.x * 1, (int)quadBottomLeft.y * 1, (int)quadBottomRight.x * 1, (int)quadBottomRight.y * 1, (int)quadTopLeft.x * 1, (int)quadTopLeft.y * 1, (int)quadTopRight.x * 1, (int)quadTopRight.y * 1, 0, 0, 0, 0, 0, 0x0000FF44);
+		Novice::DrawQuad((int)quadBottomLeft2.x * 1, (int)quadBottomLeft2.y * 1, (int)quadBottomRight2.x * 1, (int)quadBottomRight2.y * 1, (int)quadTopLeft2.x * 1, (int)quadTopLeft2.y * 1, (int)quadTopRight2.x * 1, (int)quadTopRight2.y * 1, 0, 0, 0, 0, 0, 0x0000FF44);
 		Novice::DrawTriangle((int)triangleTop.x * 1, (int)triangleTop.y * 1, (int)triangleLeft.x * 1, (int)triangleLeft.y * 1, (int)triangleRight.x * 1, (int)triangleRight.y * 1, RED, kFillModeWireFrame);
 
+		DrawSpecialTriangle3D(triangleTop3D,
+			triangleBackLeft3D, triangleBackRight3D,
+			triangleFrontLeft3D, triangleFrontRight3D,
+			scaleCamera, rotateCamera, translateCamera,
+			0xFFFFFFFF);
+
+		DrawCustomCuboid(quadTopLeft3D, quadTopRight3D, quadBottomRight3D, quadBottomLeft3D, quadBackTopLeft3D, quadBackTopRight3D, quadBackBottomRight3D, quadBackBottomLeft3D, scaleCamera, rotateCamera, translateCamera, 0x00FF00FF);
 
 		///
 		/// ↑描画処理ここまで
