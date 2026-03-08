@@ -162,16 +162,40 @@ bool Tetrahedron(Simplex& points, Vector3& direction)
 	Vector3 acd = CrossProduct(ac, ad);
 	Vector3 adb = CrossProduct(ad, ab);
 
+	//if (SameDirection(abc, ao)) {
+	//	return Triangle(points = { a, b, c }, direction);
+	//}
+
+	//if (SameDirection(acd, ao)) {
+	//	return Triangle(points = { a, c, d }, direction);
+	//}
+
+	//if (SameDirection(adb, ao)) {
+	//	return Triangle(points = { a, d, b }, direction);
+	//}
+
+	// abc面の法線が「外」を向くように調整 (dと逆側ならそのままでOK)
+	if (Dot(abc, ad) > 0) abc = -abc;
 	if (SameDirection(abc, ao)) {
-		return Triangle(points = { a, b, c }, direction);
+		points = { a, b, c };
+		direction = abc;
+		return false;
 	}
 
+	// acd面の法線が「外」を向くように調整
+	if (Dot(acd, ab) > 0) acd = -acd;
 	if (SameDirection(acd, ao)) {
-		return Triangle(points = { a, c, d }, direction);
+		points = { a, c, d };
+		direction = acd;
+		return false;
 	}
 
+	// adb面の法線が「外」を向くように調整
+	if (Dot(adb, ac) > 0) adb = -adb;
 	if (SameDirection(adb, ao)) {
-		return Triangle(points = { a, d, b }, direction);
+		points = { a, d, b };
+		direction = adb;
+		return false;
 	}
 
 	return true;
@@ -213,6 +237,228 @@ bool GJK(const Collider& colliderA, const Collider& colliderB)
 	}
 }
 
+// 追加: Polytope (faces) 拡張と法線計算のユーティリティ
+
+// 面の法線と距離を格納する簡易構造体
+struct FaceNormal {
+	Vector3 normal;
+	float distance;
+	FaceNormal() : normal{ 0,0,0 }, distance(0.0f) {}
+	FaceNormal(const Vector3& n, float d) : normal(n), distance(d) {}
+};
+
+// faces: 頂点インデックスのリスト ( tri0: faces[0..2], tri1: faces[3..5], ... )
+// 戻り値: (faceNormals, 最小距離の面インデックス(三角形単位) )
+static std::pair<std::vector<FaceNormal>, size_t> GetFaceNormals(
+	const std::vector<Vector3>& polytope,
+	const std::vector<size_t>& faces)
+{
+	std::vector<FaceNormal> normals;
+	size_t minTriangle = 0;
+	float minDistance = FLT_MAX;
+
+	if (faces.empty()) return { normals, minTriangle };
+
+	for (size_t i = 0; i + 2 < faces.size(); i += 3) {
+		Vector3 a = polytope[faces[i]];
+		Vector3 b = polytope[faces[i + 1]];
+		Vector3 c = polytope[faces[i + 2]];
+
+		Vector3 normal = CrossProduct(b - a, c - a);
+		normal = Normalize(normal);
+
+		float distance = Dot(normal, a);
+
+		// 距離が負なら法線の向きを反転して正にする（法線は外側を向く）
+		if (distance < 0.0f) {
+			normal = -normal;
+			distance = -distance;
+		}
+
+		normals.emplace_back(normal, distance);
+
+		if (distance < minDistance) {
+			minDistance = distance;
+			minTriangle = i / 3;
+		}
+	}
+
+	return { normals, minTriangle };
+}
+
+// faces と faces[a], faces[b] が示すインデックスの順で辺を edges に追加する。
+// ただし逆向きの辺が既にある場合はそちらを削除する（内部で「一意」を保つ）
+static void AddIfUniqueEdge(
+	std::vector<std::pair<size_t, size_t>>& edges,
+	const std::vector<size_t>& faces,
+	size_t a, size_t b)
+{
+	// faces[a], faces[b] を実際の頂点インデックスとして扱う
+	size_t va = faces[a];
+	size_t vb = faces[b];
+	auto reverseIt = std::find(edges.begin(), edges.end(), std::make_pair(vb, va));
+	if (reverseIt != edges.end()) {
+		// 逆向きの辺があれば消す（内部で共有辺はキャンセルされる）
+		edges.erase(reverseIt);
+	}
+	else {
+		edges.emplace_back(va, vb);
+	}
+}
+
+// polytope と faces を support 点で拡張する。
+// 処理内容:
+//  - faces の各面について face normal を計算し、support 方向を向いている面は除去してその辺を uniqueEdges に収集する。
+//  - uniqueEdges を使って support を共有頂点とする新しい三角形を作成して faces に追加する。
+// 戻り値: 追加された三角形のインデックス範囲を (startTriIndex, triCount) の pair で返す。
+// 注意: faces は tri ごとのインデックス配列 (3*n)。
+static std::pair<size_t, size_t> AddSupportToPolytope(
+	std::vector<Vector3>& polytope,
+	std::vector<size_t>& faces,
+	const Vector3& support)
+{
+	// 1) 全面法線を取得
+	auto [normals, minFace] = GetFaceNormals(polytope, faces);
+
+	// 2) support に面が向いているか調べ、向いている面を削除してエッジを収集する
+	std::vector<std::pair<size_t, size_t>> uniqueEdges;
+	std::vector<size_t> newFaces; // 残すべき面のインデックスリスト（再構築用）
+
+	for (size_t tri = 0; tri < normals.size(); ++tri) {
+		const FaceNormal& fn = normals[tri];
+		// 面の法線が support の方向を向いている (内積 > 0) なら削除対象
+		if (Dot(fn.normal, support) > 0.0f) {
+			// この三角形のフェイス頂点のインデックス
+			size_t f = tri * 3;
+			// 各辺を uniqueEdges に追加（逆向きがあれば消える）
+			AddIfUniqueEdge(uniqueEdges, faces, f + 0, f + 1);
+			AddIfUniqueEdge(uniqueEdges, faces, f + 1, f + 2);
+			AddIfUniqueEdge(uniqueEdges, faces, f + 2, f + 0);
+			// この三角形は保持しない（スキップ）
+		}
+		else {
+			// 保持する三角形は newFaces にコピー
+			size_t f = tri * 3;
+			newFaces.push_back(faces[f + 0]);
+			newFaces.push_back(faces[f + 1]);
+			newFaces.push_back(faces[f + 2]);
+		}
+	}
+
+	// 置き換え
+	faces.swap(newFaces);
+
+	// 3) uniqueEdges を使って新しい三角形を作る
+	size_t supportIndex = polytope.size();
+	polytope.push_back(support);
+
+	size_t startTriIndex = faces.size() / 3; // 追加される三角形の開始インデックス
+	for (auto& e : uniqueEdges) {
+		// e.first, e.second は頂点インデックス
+		faces.push_back(static_cast<size_t>(e.first));
+		faces.push_back(static_cast<size_t>(e.second));
+		faces.push_back(supportIndex);
+	}
+	size_t triCount = uniqueEdges.size();
+
+	return { startTriIndex, triCount };
+}
+
+struct Contact3D {
+	Vector3 normal;
+	float depth;
+	bool hasCollision;
+	Contact3D() : normal{ 0,0,0 }, depth(0.0f), hasCollision(false) {}
+	Contact3D(const Vector3& n, float d) : normal(n), depth(d), hasCollision(true) {}
+};
+
+// GJK を実行して、衝突があった場合に最終 Simplex の点群を outSimplex に格納して true を返す。
+// 既存の GJK と同じアルゴリズムを使用（Simplex 構造体を利用）。
+bool GJK_GetSimplex(const Collider& colliderA, const Collider& colliderB, std::vector<Vector3>& outSimplex) {
+	// 初期サポート
+	Vector3 support = Support(colliderA, colliderB, Vector3(1, 0, 0));
+	Simplex points;
+	points.push_front(support);
+
+	Vector3 direction = -support;
+	int iterations = 0;
+	while (iterations++ < 64) {
+		support = Support(colliderA, colliderB, direction);
+		if (Dot(support, direction) <= 0.0f) {
+			return false; // 衝突なし
+		}
+		points.push_front(support);
+		if (NextSimplex(points, direction)) {
+			// 衝突。points に残っている点を outSimplex にコピーする
+			outSimplex.clear();
+			for (size_t i = 0; i < points.size(); ++i) {
+				outSimplex.push_back(points[(int)i]);
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+// EPA 用ユーティリティ (GetFaceNormals, AddIfUniqueEdge, AddSupportToPolytope) は
+// 既に main.cpp にある実装をそのまま使える前提。
+// ここでは EPA のループを実装する。
+
+// EPA: 初期多面体(単体) から押し出し法線と深さを求める
+Contact3D EPA3D(const Collider& colliderA, const Collider& colliderB, const std::vector<Vector3>& initialSimplex) {
+	// 初期多面体の頂点リストを作る
+	std::vector<Vector3> polytope = initialSimplex;
+
+	// simplex は通常 4 点になるはず (A,B,C,D)。faces の初期化は順序に注意
+	// 初期 simplex の頂点順に依存するが、代表的な四面体の faces を作成
+	std::vector<size_t> faces;
+	if (polytope.size() == 4) {
+		// faces: triangles (0,1,2), (0,3,1), (0,2,3), (1,3,2)
+		faces = { 0,1,2, 0,3,1, 0,2,3, 1,3,2 };
+	}
+	else if (polytope.size() == 3) {
+		// 三角形しかない場合は背面に一点を追加して四面体にする（原点方向に少し押し戻す）
+		// 安全処理: 単純に原点方向に小さな点を追加
+		Vector3 a = polytope[0], b = polytope[1], c = polytope[2];
+		Vector3 d = (a + b + c) / 3.0f + Vector3{ 0.001f,0.001f,0.001f };
+		polytope.push_back(d);
+		faces = { 0,1,2, 0,3,1, 0,2,3, 1,3,2 };
+	}
+	else {
+		// 想定外: 返却
+		return Contact3D();
+	}
+
+	constexpr int kMaxEPAIterations = 64;
+	constexpr float kTolerance = 0.0001f;
+
+	for (int iter = 0; iter < kMaxEPAIterations; ++iter) {
+		// faces -> 法線と距離の列を取得（GetFaceNormals は既実装）
+		auto [normals, minFace] = GetFaceNormals(polytope, faces);
+		if (normals.empty()) break;
+
+		Vector3 minNormal = normals[minFace].normal;
+		float minDistance = normals[minFace].distance;
+
+		// サポートポイントを取る
+		Vector3 support = Support(colliderA, colliderB, minNormal);
+		float sDistance = Dot(minNormal, support);
+
+		// 終了条件
+		if (sDistance - minDistance < kTolerance) {
+			// minNormal は既に外向き; penetration depth を返す
+			return Contact3D(minNormal, minDistance);
+		}
+
+		// 多面体を拡張（AddSupportToPolytope は既実装）
+		auto added = AddSupportToPolytope(polytope, faces, support);
+		// AddSupportToPolytope は polytope と faces を更新する（上で実装済み）
+		// 次ループで normals を再計算して続行
+	}
+	// 収束しなかった場合は失敗とみなす
+	return Contact3D();
+}
+
 // 立方体の頂点 (中心 offset, サイズ size) を生成する関数
 std::vector<Vector3> CreateCube(const Vector3& offset, float size) {
 	float s = size * 0.5f;
@@ -228,6 +474,62 @@ std::vector<Vector3> CreateCube(const Vector3& offset, float size) {
 	};
 }
 
+struct GJKEPATestResult {
+	Vector3 bPos;
+	bool gjk = false;
+	bool epa = false;
+	float depth = 0.0f;
+	Vector3 normal = { 0.0f,0.0f,0.0f };
+};
+
+static std::vector<GJKEPATestResult> RunGJKEPATests() {
+	std::vector<GJKEPATestResult> results;
+
+	// テストケース: cubeB の位置リスト (必要に応じて追加・調整する)
+	std::vector<Vector3> testPositions = {
+		{0.4f, 0.0f, 0.0f}, // 深く交差
+		{0.8f, 0.0f, 0.0f}, // 軽い交差
+		{1.0f, 0.0f, 0.0f}, // 端接触(ケース依存)
+		{1.2f, 0.0f, 0.0f}, // 離れている
+		{0.0f, 0.9f, 0.0f}, // Y 軸方向に近接
+		{0.0f, 0.0f, 1.8f}  // Z 軸方向に離れている
+	};
+
+	for (auto pos : testPositions) {
+		// 検査用メッシュを作成
+		MeshCollider A, B;
+		A.m_vertices = CreateCube({ 0.0f, 0.0f, 0.0f }, 1.0f);
+		B.m_vertices = CreateCube(pos, 1.0f);
+
+		GJKEPATestResult r;
+		r.bPos = pos;
+
+		// GJK で simplex を取得
+		std::vector<Vector3> simplex;
+		if (GJK_GetSimplex(A, B, simplex)) {
+			r.gjk = true;
+			// EPA で押し出し法線と深さを取得
+			Contact3D contact = EPA3D(A, B, simplex);
+			r.epa = contact.hasCollision;
+			r.depth = contact.depth;
+			r.normal = contact.normal;
+		}
+		else {
+			r.gjk = false;
+			r.epa = false;
+			r.depth = 0.0f;
+			r.normal = { 0.0f,0.0f,0.0f };
+		}
+
+		results.push_back(r);
+	}
+
+	return results;
+}
+
+// グローバル変数に結果を保持（WinMain 内で初期化して使用）
+static std::vector<GJKEPATestResult> g_gjkEpaResults;
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -235,6 +537,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
+
+	g_gjkEpaResults = RunGJKEPATests();
 
 	// カメラ
 	Vector3 scaleCamera = { 1.0f,1.0f,0.250f };
@@ -401,10 +705,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (keys[DIK_I])  cubeBPos.y += kCubeMoveSpeed; // 上方に移動
 		if (keys[DIK_K])  cubeBPos.y -= kCubeMoveSpeed; // 上方に移動
 
+		if (preKeys[DIK_T] == 0 && keys[DIK_T] != 0) {
+			g_gjkEpaResults = RunGJKEPATests();
+		}
 
 		// 位置変更があれば頂点を再生成（当たり判定・描画に反映）
-		cubeA.m_vertices = CreateCube(cubeAPos, 1.0f);
-		cubeB.m_vertices = CreateCube(cubeBPos, 1.0f);
+		// 位置変更があれば頂点を再生成し、ImGui で編集したオフセットを反映する
+		{
+			auto baseA = CreateCube(cubeAPos, 1.0f);
+			auto baseB = CreateCube(cubeBPos, 1.0f);
+
+			// ensure vectors have size 8
+			cubeA.m_vertices = baseA;
+			cubeB.m_vertices = baseB;
+
+			for (int i = 0; i < 8; ++i) {
+				cubeA.m_vertices[i].x += vertexOffsetsA[i].x;
+				cubeA.m_vertices[i].y += vertexOffsetsA[i].y;
+				cubeA.m_vertices[i].z += vertexOffsetsA[i].z;
+
+				cubeB.m_vertices[i].x += vertexOffsetsB[i].x;
+				cubeB.m_vertices[i].y += vertexOffsetsB[i].y;
+				cubeB.m_vertices[i].z += vertexOffsetsB[i].z;
+			}
+		}
 		// --- ここまで追加 ---
 
 		// 当たり判定2D
@@ -432,23 +756,41 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}*/
 
 		// 当たり判定3D
-		if (GJK(cubeA,cubeB)) {
+		/*if (GJK(cubeA,cubeB)) {
 			Novice::DrawBox(100, 100, 300, 300, 0.0f, WHITE, kFillModeWireFrame);
-		}
+		}*/
 
-		// base vertices を生成してオフセットを足す
 		{
-			auto baseA = CreateCube(cubeAPos, 1.0f);
-			for (int i = 0; i < 8; ++i) {
-				cubeA.m_vertices[i] = { baseA[i].x + vertexOffsetsA[i].x,
-										baseA[i].y + vertexOffsetsA[i].y,
-										baseA[i].z + vertexOffsetsA[i].z };
+			// GJK で simplex を取得
+			std::vector<Vector3> simplexForEPA;
+			if (GJK_GetSimplex(cubeA, cubeB, simplexForEPA)) {
+				Contact3D contact = EPA3D(cubeA, cubeB, simplexForEPA);
+				if (contact.hasCollision) {
+					// 小さな余裕を加えて突き抜け判定の反復を防ぐ
+					const float kEpsilon = 0.001f;
+
+					// contact.normal は多面体の外向き法線（Minkowski空間の法線）
+					// これをそのまま使うと cubeB を押し出す方向になる（実装により符号が逆の場合は -normal を使ってください）
+					// depth=contact.depth（minDistance）分だけ移動
+					cubeBPos = cubeBPos + contact.normal * (contact.depth + kEpsilon);
+
+					// 位置を変えたら頂点も更新して描画と次フレームの当たり判定に反映
+					auto baseB = CreateCube(cubeBPos, 1.0f);
+					for (int i = 0; i < 8; ++i) {
+						cubeB.m_vertices[i] = { baseB[i].x + vertexOffsetsB[i].x,
+												baseB[i].y + vertexOffsetsB[i].y,
+												baseB[i].z + vertexOffsetsB[i].z };
+					}
+
+					// デバッグ表示（任意）
+					ImGui::Begin("EPA Debug");
+					ImGui::Text("Penetration depth: %.6f", contact.depth);
+					ImGui::Text("Normal: %.3f, %.3f, %.3f", contact.normal.x, contact.normal.y, contact.normal.z);
+					ImGui::End();
+				}
 			}
-			auto baseB = CreateCube(cubeBPos, 1.0f);
-			for (int i = 0; i < 8; ++i) {
-				cubeB.m_vertices[i] = { baseB[i].x + vertexOffsetsB[i].x,
-										baseB[i].y + vertexOffsetsB[i].y,
-										baseB[i].z + vertexOffsetsB[i].z };
+			else {
+				// 衝突していなければ何もしない（或いは視覚化だけ）
 			}
 		}
 
@@ -534,7 +876,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		ImGui::End();
 #pragma endregion
-
+		// ImGui 内にテスト結果ウィンドウを表示
+		ImGui::Begin("GJK-EPA Tests");
+		if (ImGui::Button("Run Tests (T)")) {
+			g_gjkEpaResults = RunGJKEPATests();
+		}
+		ImGui::Separator();
+		ImGui::Text("Index | B Pos (x,y,z) | GJK | EPA | Depth | Normal(x,y,z)");
+		for (size_t i = 0; i < g_gjkEpaResults.size(); ++i) {
+			const auto& r = g_gjkEpaResults[i];
+			ImGui::Text("%02zu: (%.2f, %.2f, %.2f) | %s | %s | %.5f | (%.3f, %.3f, %.3f)",
+				i,
+				r.bPos.x, r.bPos.y, r.bPos.z,
+				r.gjk ? "YES" : "NO",
+				r.epa ? "YES" : "NO",
+				r.depth,
+				r.normal.x, r.normal.y, r.normal.z
+			);
+		}
+		ImGui::End();
 		
 		Novice::DrawQuad((int)quadBottomLeft.x * 1, (int)quadBottomLeft.y * 1, (int)quadBottomRight.x * 1, (int)quadBottomRight.y * 1, (int)quadTopLeft.x * 1, (int)quadTopLeft.y * 1, (int)quadTopRight.x * 1, (int)quadTopRight.y * 1, 0, 0, 0, 0, 0, 0x0000FF44);
 		Novice::DrawTriangle((int)triangleTop.x * 1, (int)triangleTop.y * 1, (int)triangleLeft.x * 1, (int)triangleLeft.y * 1, (int)triangleRight.x * 1, (int)triangleRight.y * 1, RED, kFillModeWireFrame);
