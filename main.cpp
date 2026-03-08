@@ -602,7 +602,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 		// 当たり判定2D
-		/*std::vector<SupportPoint>simplex;
+		std::vector<SupportPoint>simplex;
 		if (collision({triangleTop,triangleLeft,triangleRight}, {quadBottomLeft,quadBottomRight,quadTopLeft,quadTopRight},simplex)) {
 			Novice::DrawBox(100, 100, 300, 300, 0.0f, WHITE, kFillModeWireFrame);
 			Contact contact = EPA({ triangleTop,triangleLeft,triangleRight }, { quadBottomLeft,quadBottomRight,quadTopLeft,quadTopRight }, simplex);
@@ -646,10 +646,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::DragFloat2("Simplex2 : 2", &simplex2[1].v.x);
 			ImGui::DragFloat2("Simplex2 : 3", &simplex2[2].v.x);
 			ImGui::End();
-		}*/
+		}
 
 		// 当たり判定3D
-		std::vector<SupportPoint3D>simplex3D;
+		/*std::vector<SupportPoint3D>simplex3D;
 		if (Collision3D({ triangleTop3D,triangleBackLeft3D,triangleBackRight3D,triangleFrontLeft3D,triangleFrontRight3D }, { quadBottomLeft3D,quadBottomRight3D,quadTopLeft3D,quadTopRight3D,quadBackBottomLeft3D,quadBackBottomRight3D,quadBackTopLeft3D,quadBackTopRight3D }, simplex3D)) {
 			Novice::DrawBox(100, 100, 300, 300, 0.0f, WHITE, kFillModeWireFrame);
 			ImGui::Begin("Debug");
@@ -658,7 +658,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			ImGui::DragFloat3("Simplex : 3", &simplex3D[2].v.x);
 			ImGui::DragFloat3("Simplex : 4", &simplex3D[3].v.x);
 			ImGui::End();
-		}
+		}*/
 
 		///
 		/// ↑更新処理ここまで
